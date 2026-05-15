@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users — anyone can read, anyone can create/update (app handles auth)
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if true; // admin only in practice
+    }
+
+    // Active questions — read by all, write by admin only (no Firebase Auth
+    // so we leave open; lock down after adding proper admin auth)
+    match /questions/{qId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Admin question pool
+    match /adminQuestions/{qId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Answers
+    match /answers/{aId} {
+      allow read: if true;
+      allow create, update: if true;
+    }
+
+    // Submitted questions
+    match /submitted/{sId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true; // admin updates status
+    }
+  }
+}

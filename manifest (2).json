@@ -1,0 +1,22 @@
+{
+  "name": "Davids Schweinsexa",
+  "short_name": "Schweinsexa",
+  "description": "Quiz, Bingo & Betting för Davids svensexa!",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/davekillers.png?alt=media&token=23843f61-a268-4f0d-9fb3-3ac661068723",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/question-images%2FCFrwja90cgZys4YKCCz7.jpg?alt=media&token=7dc47089-4bcf-452f-abb4-76260fe634bf",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

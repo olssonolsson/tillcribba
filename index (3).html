@@ -1,0 +1,3155 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Davids Schweinsexa!</title>
+<!-- PWA / Add to Home Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Svensexa">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="apple-touch-icon" href="https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davidlogga.png?alt=media">
+<link rel="icon" type="image/png" href="https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davidlogga.png?alt=media">
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c28;
+    --border: #2a2a3d; --accent: #7c5cfc; --accent2: #fc5c7c;
+    --accent3: #5cfcb4; --text: #f0f0fa; --text2: #8888aa;
+    --correct: #5cfcb4; --wrong: #fc5c7c;
+    --radius: 16px; --radius-sm: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  /* PWA fullscreen: account for status bar and home indicator */
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  #mainScreen { padding-top: env(safe-area-inset-top); }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(ellipse 80% 50% at 20% -10%, rgba(124,92,252,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 110%, rgba(252,92,124,0.10) 0%, transparent 60%);
+  }
+
+  /* ── Maiden-typsnitt på vissa delar ── */
+  /* 1. Här registrerar du typsnittet */
+        @font-face {
+            font-family: 'maiden';
+            src: url('metallord.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* 2. Här väljer du var det ska användas */
+        .maiden {
+            font-family: 'maiden', sans-serif;
+          letter-spacing: 3px;
+          font-size: 40px;
+          color: red;
+          -webkit-text-stroke: 1.5px white;
+        }
+
+  
+  /* ── LOADING ── */
+  #loadingScreen {
+    position: fixed; inset: 0; background: var(--bg); z-index: 999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+  }
+  .loading-logo { font-family: 'Syne', sans-serif; font-size: 2.5rem; font-weight: 800; letter-spacing: -2px; background: linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .loading-spin { width: 36px; height: 36px; border-radius: 50%; border: 3px solid rgba(124,92,252,0.2); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .screen { display: none; position: relative; z-index: 1; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── AVATAR ── */
+  .av {
+    border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; overflow: hidden;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); vertical-align: middle;
+  }
+  .av img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+
+  /* ── START ── */
+  #startScreen { align-items: center; justify-content: center; padding: 40px 20px; }
+  .start-logo { font-family: 'Syne', sans-serif; font-size: 3.2rem; font-weight: 800; letter-spacing: -2px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; text-align: center; }
+  .start-logo img { max-width: 900px; max-height: 450px; height: auto; width: auto; display: block; margin: 0 auto; }
+  .start-sub { color: var(--text2); font-size: 0.9rem; margin-bottom: 48px; text-align: center; }
+  .users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; width: 100%; max-width: 480px; margin-bottom: 32px; }
+  .user-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px 12px; text-align: center; cursor: pointer; transition: all 0.22s ease; position: relative; overflow: hidden; }
+  .user-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, var(--accent), var(--accent2)); opacity: 0; transition: opacity 0.2s; }
+  .user-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 14px 32px rgba(124,92,252,0.15); }
+  .user-card:hover::before { opacity: 0.07; }
+  .user-card-av { width: 62px; height: 62px; font-size: 1.5rem; margin: 0 auto 10px; position: relative; z-index: 1; border: 2.5px solid rgba(255,255,255,0.1); }
+  .user-name { font-size: 0.85rem; font-weight: 600; position: relative; z-index: 1; word-break: break-word; }
+  .user-pts { font-size: 0.72rem; margin-top: 4px; position: relative; z-index: 1; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--accent3); }
+  .new-user-card { background: transparent; border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 20px 12px; text-align: center; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px; }
+  .new-user-card:hover { border-color: var(--accent); background: rgba(124,92,252,0.04); }
+  .new-user-card .plus { font-size: 2rem; color: var(--text2); margin-bottom: 6px; }
+  .new-user-card .label { font-size: 0.8rem; color: var(--text2); }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,10,15,0.88); z-index: 100; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(8px); }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--surface); border: 1.5px solid var(--border); border-radius: 22px; padding: 30px; width: 100%; max-width: 400px; animation: slideUp 0.25s ease; max-height: 90vh; overflow-y: auto; }
+  @keyframes slideUp { from { transform: translateY(28px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal h2 { font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 800; margin-bottom: 5px; }
+  .modal p { color: var(--text2); font-size: 0.87rem; margin-bottom: 20px; }
+  .input-field { width: 100%; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 13px 16px; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; margin-bottom: 12px; outline: none; transition: border-color 0.2s; }
+  .input-field:focus { border-color: var(--accent); }
+  .input-field::placeholder { color: var(--text2); }
+
+  .photo-picker { display: flex; align-items: center; gap: 14px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; cursor: pointer; transition: border-color 0.2s; }
+  .photo-picker:hover { border-color: var(--accent); }
+  .photo-picker input { display: none; }
+  .photo-picker-av { width: 54px; height: 54px; font-size: 1.3rem; flex-shrink: 0; transition: transform 0.2s; }
+  .photo-picker:hover .photo-picker-av { transform: scale(1.06); }
+  .photo-picker-info { flex: 1; }
+  .photo-picker-label { font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 2px; }
+  .photo-picker-sub { font-size: 0.76rem; color: var(--text2); }
+
+  .profile-av-big { width: 88px; height: 88px; font-size: 2.2rem; margin: 0 auto 8px; cursor: pointer; border: 3px solid var(--accent); transition: transform 0.2s, box-shadow 0.2s; }
+  .profile-av-big:hover { transform: scale(1.05); box-shadow: 0 0 0 4px rgba(124,92,252,0.25); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 24px; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.02em; cursor: pointer; border: none; transition: all 0.2s ease; width: 100%; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #5a3fcc); color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,92,252,0.35); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-secondary { background: var(--surface2); color: var(--text2); border: 1.5px solid var(--border); margin-top: 10px; }
+  .btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+  .btn-ghost-red { background: rgba(252,92,124,0.07); color: var(--wrong); border: 1.5px solid rgba(252,92,124,0.2); margin-top: 10px; }
+  .btn-ghost-red:hover { background: rgba(252,92,124,0.14); }
+  .modal-error { color: var(--wrong); font-size: 0.82rem; margin-top: -4px; margin-bottom: 10px; }
+
+  /* ── HEADER ── */
+  #mainScreen { padding-bottom: 80px; }
+  .app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; position: sticky; top: 0; background: rgba(10,10,15,0.94); backdrop-filter: blur(14px); z-index: 10; border-bottom: 1px solid var(--border); }
+  .header-left { display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 100px; padding: 4px 12px 4px 4px; border: 1.5px solid transparent; transition: border-color 0.2s; }
+  .header-left:hover { border-color: var(--accent); }
+  .header-av { width: 38px; height: 38px; font-size: 0.95rem; box-shadow: 0 0 0 2px var(--accent); }
+  .header-name { font-family: 'maiden', sans-serif; font-weight: 700; font-size: 1.30rem; -webkit-text-stroke: 0.5px white; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-pts { background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 5px 14px; font-size: 0.78rem; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--accent3); }
+  .logout-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 1rem; padding: 6px 10px; transition: all 0.2s; }
+  .logout-btn:hover { color: var(--wrong); border-color: rgba(252,92,124,0.4); }
+  .refresh-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 1rem; padding: 6px 10px; transition: all 0.2s; }
+  .refresh-btn:hover { color: var(--accent3); border-color: rgba(92,252,180,0.4); }
+  .refresh-btn.spinning { animation: spin 1s linear infinite; }
+
+  /* ── TABS ── */
+  .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: rgba(19,19,26,0.97); backdrop-filter: blur(18px); border-top: 1px solid var(--border); z-index: 20; padding: 0 8px; padding-bottom: env(safe-area-inset-bottom); }
+  .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px 4px; cursor: pointer; background: none; border: none; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 0.68rem; gap: 5px; transition: color 0.2s; position: relative; }
+  .tab-btn .tab-icon { font-size: 1.25rem; }
+  .tab-btn.active { color: var(--accent); }
+  .tab-btn.active::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 32px; height: 2.5px; background: var(--accent); border-radius: 0 0 4px 4px; }
+  .tab-content { display: none; padding: 24px 20px; }
+  .tab-content.active { display: block; }
+
+  /* ── TAB 1 ── */
+  .section-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; letter-spacing: -0.5px; }
+  .lb-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 10px; transition: all 0.2s; }
+  .lb-item:hover { border-color: rgba(124,92,252,0.4); transform: translateX(2px); }
+  .lb-item.gold   { border-color: rgba(255,215,0,0.45); background: rgba(255,215,0,0.03); }
+  .lb-item.silver { border-color: rgba(192,192,192,0.35); }
+  .lb-item.bronze { border-color: rgba(205,127,50,0.35); }
+  .lb-item.me     { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .lb-medal { font-size: 1.4rem; width: 28px; text-align: center; flex-shrink: 0; }
+  .lb-rank { width: 28px; height: 28px; border-radius: 50%; background: var(--surface2); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.75rem; color: var(--text2); flex-shrink: 0; }
+  .lb-av { width: 42px; height: 42px; font-size: 1rem; border: 2px solid rgba(255,255,255,0.07); flex-shrink: 0; }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name { font-weight: 600; font-size: 0.92rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .me-tag { font-size: 0.62rem; background: rgba(124,92,252,0.18); color: var(--accent); padding: 1px 8px; border-radius: 100px; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .lb-sub { font-size: 0.73rem; color: var(--text2); margin-top: 2px; }
+  .lb-pts { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--accent3); }
+  .history-section { margin-top: 32px; }
+  .hist-item { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
+  .hist-av { width: 34px; height: 34px; font-size: 0.85rem; flex-shrink: 0; }
+  .hist-q { font-size: 0.88rem; font-weight: 500; margin-bottom: 7px; line-height: 1.4; }
+  .hist-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .rbadge { font-size: 0.7rem; font-family: 'Syne', sans-serif; font-weight: 700; padding: 3px 10px; border-radius: 100px; letter-spacing: 0.04em; }
+  .rbadge-ok  { background: rgba(92,252,180,0.15); color: var(--correct); }
+  .rbadge-err { background: rgba(252,92,124,0.15); color: var(--wrong); }
+  .hist-pts { font-size: 0.78rem; color: var(--accent3); font-family: 'Syne', sans-serif; font-weight: 700; }
+  .hist-ans { font-size: 0.73rem; color: var(--text2); margin-left: auto; }
+
+  /* ── TAB 2 ── */
+  .question-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 24px; margin-bottom: 20px; }
+  .question-img { width: 100%; border-radius: var(--radius); margin-bottom: 18px; height: auto; }
+  .question-text { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700; line-height: 1.45; margin-bottom: 22px; }
+  .opt-btn { width: 100%; text-align: left; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 13px 16px; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; transition: all 0.2s; position: relative; overflow: hidden; }
+  .opt-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(124,92,252,0.06); }
+  .opt-btn.sel    { border-color: var(--accent); background: rgba(124,92,252,0.1); }
+  .opt-btn.ok     { border-color: var(--correct); background: rgba(92,252,180,0.09); }
+  .opt-btn.err    { border-color: var(--wrong); background: rgba(252,92,124,0.09); }
+  .opt-btn.picked { border-color: var(--accent); background: rgba(124,92,252,0.08); opacity: 0.85; }
+  .opt-btn.picked .opt-letter { background: var(--accent); color: #fff; }
+  .opt-btn:disabled { cursor: default; }
+  .opt-letter { width: 28px; height: 28px; border-radius: 8px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.8rem; flex-shrink: 0; position: relative; z-index: 1; }
+  .opt-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(124,92,252,0.07); transition: width 0.7s ease; width: 0; }
+  .opt-pct { margin-left: auto; font-size: 0.78rem; color: var(--text2); font-weight: 600; position: relative; z-index: 1; }
+  .waiting-banner { display: flex; flex-direction: column; align-items: flex-start; padding: 15px; gap: 14px; background: rgba(124,92,252,0.08); border: 1.5px solid rgba(124,92,252,0.3); border-radius: var(--radius); padding: 16px 18px; margin-top: 16px; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .waiting-av { width: 44px; height: 44px; font-size: 1.1rem; flex-shrink: 0; border: 2px solid var(--accent); }
+  .waiting-text { flex: 1; }
+  .waiting-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.95rem; }
+  .waiting-sub { font-size: 0.78rem; color: var(--text2); margin-top: 3px; }
+  .waiting-spinner { width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid rgba(124,92,252,0.25); border-top-color: var(--accent); animation: spin 0.9s linear infinite; flex-shrink: 0; }
+  .answer-result { border-radius: var(--radius); padding: 22px 20px; margin-top: 16px; margin-bottom: 16px; text-align: center; animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes popIn { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .answer-result.ok  { background: rgba(92,252,180,0.09); border: 1.5px solid var(--correct); }
+  .answer-result.err { background: rgba(252,92,124,0.09); border: 1.5px solid var(--wrong); }
+  .result-big-av { width: 80px; height: 80px; font-size: 2rem; margin: 0 auto 12px; border: 3px solid currentColor; animation: avPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s both; }
+  @keyframes avPop { from { transform: scale(0) rotate(-15deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+  .answer-result.ok  .result-big-av { border-color: var(--correct); color: var(--correct); }
+  .answer-result.err .result-big-av { border-color: var(--wrong); color: var(--wrong); }
+  .result-headline { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 800; }
+  .result-detail { font-size: 0.84rem; color: var(--text2); margin-top: 5px; line-height: 1.5; }
+  .who-answered { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .who-label { font-size: 0.75rem; color: var(--text2); flex-shrink: 0; }
+  .who-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 3px 10px 3px 3px; font-size: 0.72rem; font-weight: 500; }
+  .who-chip-av { width: 22px; height: 22px; font-size: 0.5rem; }
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .result-group { border-radius: var(--radius-sm); padding: 12px 14px; }
+  .result-group.correct-group { background: rgba(92,252,180,0.06); border: 1.5px solid rgba(92,252,180,0.25); }
+  .result-group.wrong-group   { background: rgba(252,92,124,0.06); border: 1.5px solid rgba(252,92,124,0.25); }
+  .result-group-title { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .result-group.correct-group .result-group-title { color: var(--correct); }
+  .result-group.wrong-group   .result-group-title { color: var(--wrong); }
+  .result-user-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .result-user-row:last-child { margin-bottom: 0; }
+  .result-user-name { font-size: 0.82rem; font-weight: 500; }
+  .result-user-ans { font-size: 0.68rem; color: var(--text2); margin-top: 1px; }
+  .no-question { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .no-question .icon { font-size: 3rem; margin-bottom: 12px; }
+  .no-question p { font-size: 0.9rem; }
+
+  /* ── TAB 3 ── */
+  .form-label { font-family: 'Syne', sans-serif; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; display: block; }
+  .form-group { margin-bottom: 18px; }
+  .opts-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .opt-input-row { display: flex; align-items: center; gap: 10px; }
+  .opt-input-row .input-field { margin-bottom: 0; flex: 1; }
+  .rm-opt-btn { width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); border: 1.5px solid var(--border); color: var(--wrong); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
+  .rm-opt-btn:hover { background: rgba(252,92,124,0.1); }
+  .add-opt-btn { width: 100%; background: transparent; border: 1.5px dashed var(--border); border-radius: var(--radius-sm); color: var(--text2); padding: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; transition: all 0.2s; }
+  .add-opt-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .upload-area { border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .upload-area:hover { border-color: var(--accent); }
+  .upload-area input { display: none; }
+  .upload-preview { width: 100%; border-radius: var(--radius); max-height: 200px; object-fit: cover; margin-top: 12px; display: none; }
+  .success-msg { background: rgba(92,252,180,0.1); border: 1.5px solid var(--correct); border-radius: var(--radius); padding: 14px 18px; font-size: 0.88rem; color: var(--correct); margin-bottom: 16px; display: none; text-align: center; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 0.88rem; }
+
+  /* ── TAB 4 BINGO ── */
+  .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 20px; }
+  .bingo-cell {
+    aspect-ratio: 1; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    text-align: center; font-size: 0.62rem; font-weight: 600; padding: 5px;
+    cursor: pointer; transition: all 0.2s; line-height: 1.3; user-select: none;
+  }
+  .bingo-cell:hover { border-color: var(--accent); background: rgba(124,92,252,0.06); }
+  .bingo-cell.marked {
+    background: linear-gradient(135deg, var(--accent), #5a3fcc);
+    border-color: var(--accent); color: #fff;
+    box-shadow: 0 4px 14px rgba(124,92,252,0.35);
+    transform: scale(0.96);
+    position: relative; overflow: hidden;
+  }
+  .bingo-cell.marked .bingo-dave {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0.35; border-radius: 8px; pointer-events: none;
+  }
+  .bingo-cell.marked .bingo-label { position: relative; z-index: 1; }
+  .bingo-cell.bingo-line {
+    background: linear-gradient(135deg, var(--accent3), #3dd68c);
+    border-color: var(--accent3); color: #000;
+    box-shadow: 0 4px 14px rgba(92,252,180,0.4);
+  }
+
+  .bingo-inspect-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 16px 0; }
+  .bingo-inspect-cell {
+    aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    text-align: center; font-size: 0.55rem; font-weight: 600; padding: 4px; line-height: 1.2;
+    background: var(--surface2); border: 1.5px solid var(--border); color: var(--text2);
+    position: relative; overflow: hidden;
+  }
+  .bingo-inspect-cell.marked {
+    background: linear-gradient(135deg, var(--accent), #5a3fcc);
+    border-color: var(--accent); color: #fff;
+  }
+  .bingo-inspect-cell.marked .bingo-dave {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0.35; border-radius: 6px; pointer-events: none;
+  }
+  .bingo-inspect-cell.marked .bingo-label { position: relative; z-index: 1; }
+  .bingo-inspect-cell.bingo-line {
+    background: linear-gradient(135deg, var(--accent3), #3dd68c);
+    border-color: var(--accent3); color: #000;
+  }
+  .bingo-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+  .bingo-sub { font-family: 'Syne', sans-serif; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; display: block; }
+  .bingo-winner-banner {
+    background: linear-gradient(135deg, rgba(92,252,180,0.15), rgba(124,92,252,0.1));
+    border: 2px solid var(--accent3); border-radius: var(--radius);
+    padding: 18px; text-align: center; margin-bottom: 18px;
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .bingo-winner-name { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--accent3); }
+  .bingo-winners-list { margin-top: 10px; }
+  .bingo-winner-item { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 8px; }
+
+  /* ── GLOBAL BINGO BANNER ── */
+  #bingoBanner {
+    display: none; position: sticky; top: 67px; left: 0; right: 0; z-index: 9;
+    background: linear-gradient(135deg, rgba(92,252,180,0.97), rgba(52,214,140,0.97));
+    color: #000; padding: 9px 16px;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.88rem;
+    text-align: center; box-shadow: 0 3px 14px rgba(92,252,180,0.35);
+    animation: slideDown 0.3s ease; cursor: pointer;
+  }
+  @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  #bingoBanner.visible { display: block; }
+
+  /* ── TOAST ── */
+  .app-toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--surface); border: 1.5px solid var(--correct); border-radius: 100px; padding: 10px 22px; font-size: 0.85rem; font-family: 'Syne', sans-serif; font-weight: 700; color: var(--correct); z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s, transform 0.3s; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── BETTING ── */
+  .bet-create-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 4px; }
+  .bet-create-toggle { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; user-select: none; transition: background 0.2s; }
+  .bet-create-toggle:hover { background: rgba(124,92,252,0.04); }
+  .bet-create-arrow { transition: transform 0.2s; display: inline-block; font-size: 0.75rem; color: var(--text2); }
+  .bet-create-arrow.open { transform: rotate(180deg); }
+  .bet-create-form { display: none; padding: 0 18px 18px; }
+  .bet-create-form.open { display: block; }
+  .bet-opt-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .bet-opt-row .input-field { margin-bottom: 0; flex: 1; }
+  .bet-opt-letter { width: 28px; height: 28px; border-radius: 7px; background: var(--surface2); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.75rem; color: var(--text2); flex-shrink: 0; }
+
+  /* ── BET TARGET PICKER ── */
+  .bet-target-section { margin: 12px 0; }
+  .bet-target-label { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text2); margin-bottom: 8px; }
+  .bet-target-toggle { display: flex; gap: 8px; margin-bottom: 10px; }
+  .bet-target-btn { flex: 1; padding: 8px 12px; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.78rem; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface2); color: var(--text2); transition: all 0.18s; }
+  .bet-target-btn.active { background: rgba(124,92,252,0.15); border-color: var(--accent); color: var(--accent); }
+  .bet-user-picker { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); }
+  .bet-user-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 5px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--surface); font-size: 0.78rem; cursor: pointer; transition: all 0.18s; user-select: none; }
+  .bet-user-chip:hover { border-color: var(--accent); }
+  .bet-user-chip.selected { border-color: var(--accent); background: rgba(124,92,252,0.15); color: var(--accent); }
+  .bet-user-chip .chip-check { font-size: 0.7rem; opacity: 0; transition: opacity 0.15s; }
+  .bet-user-chip.selected .chip-check { opacity: 1; }
+  .bet-target-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.65rem; font-family: 'Syne', sans-serif; font-weight: 700; padding: 2px 8px; border-radius: 100px; background: rgba(252,92,124,0.15); color: var(--accent2); border: 1px solid rgba(252,92,124,0.3); }
+
+  .bet-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+  .bet-card.settled { border-color: rgba(92,252,180,0.3); background: rgba(92,252,180,0.03); }
+  .bet-card.settled-wrong { border-color: rgba(252,92,124,0.2); }
+  .bet-question { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.98rem; line-height: 1.4; margin-bottom: 6px; }
+  .bet-meta { font-size: 0.73rem; color: var(--text2); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bet-status-badge { font-family: 'Syne', sans-serif; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 100px; }
+  .bet-status-open { background: rgba(124,92,252,0.15); color: var(--accent); }
+  .bet-status-settled { background: rgba(92,252,180,0.15); color: var(--correct); }
+  .bet-options { display: flex; flex-direction: column; gap: 8px; }
+  .bet-opt-btn { width: 100%; text-align: left; background: var(--surface2); border: 1.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text); padding: 11px 14px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; position: relative; overflow: hidden; }
+  .bet-opt-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(124,92,252,0.06); }
+  .bet-opt-btn.chosen { border-color: var(--accent); background: rgba(124,92,252,0.12); }
+  .bet-opt-btn.winner { border-color: var(--correct); background: rgba(92,252,180,0.1); }
+  .bet-opt-btn.loser  { border-color: rgba(252,92,124,0.3); opacity: 0.6; }
+  .bet-opt-btn.chosen.winner { border-color: var(--correct); background: rgba(92,252,180,0.15); }
+  .bet-opt-btn.chosen.loser  { border-color: var(--wrong); background: rgba(252,92,124,0.1); opacity: 1; }
+  .bet-opt-btn:disabled { cursor: default; }
+  .bet-opt-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(124,92,252,0.07); transition: width 0.6s ease; }
+  .bet-opt-bar.winner-bar { background: rgba(92,252,180,0.1); }
+  .bet-opt-label { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.72rem; width: 20px; text-align: center; flex-shrink: 0; position: relative; z-index: 1; }
+  .bet-opt-text { flex: 1; position: relative; z-index: 1; }
+  .bet-opt-count { font-size: 0.72rem; color: var(--text2); margin-left: auto; position: relative; z-index: 1; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .bet-voters { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .bet-voter-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 2px 8px 2px 3px; font-size: 0.7rem; }
+  .bet-result-banner { margin-top: 12px; padding: 10px 14px; border-radius: var(--radius-sm); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.88rem; text-align: center; }
+  .bet-result-banner.win  { background: rgba(92,252,180,0.12); border: 1.5px solid var(--correct); color: var(--correct); }
+  .bet-result-banner.lose { background: rgba(252,92,124,0.08); border: 1.5px solid rgba(252,92,124,0.4); color: var(--wrong); }
+  .bet-result-banner.no-pick { background: var(--surface2); border: 1.5px solid var(--border); color: var(--text2); }
+
+  @media (max-width: 360px) { .start-logo { font-size: 2.5rem; } .users-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ── TAB 6: FYLLEMÄTAREN ── */
+  .fylle-hero {
+    text-align: center; margin-bottom: 20px;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 22px 16px;
+    position: relative; overflow: hidden;
+  }
+  .fylle-hero::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(252,92,124,0.12) 0%, transparent 70%);
+  }
+  .fylle-level-emoji { font-size: 3.5rem; line-height: 1; margin-bottom: 8px; transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  .fylle-avg-value {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2.8rem;
+    letter-spacing: -2px; line-height: 1;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .fylle-level-label { font-size: 0.88rem; color: var(--text2); margin-top: 6px; }
+  .fylle-voter-count { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text2); margin-top: 10px; }
+  .fylle-no-votes { font-size: 0.88rem; color: var(--text2); padding: 10px 0; }
+
+  .fylle-chart-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+  }
+  .fylle-chart-title {
+    font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--text2); margin-bottom: 12px;
+  }
+  .fylle-chart-scroll-wrapper {
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+  }
+  .fylle-chart-scroll-wrapper::-webkit-scrollbar { height: 3px; }
+  .fylle-chart-scroll-wrapper::-webkit-scrollbar-thumb { background: rgba(124,92,252,0.3); border-radius: 3px; }
+  .fylle-chart-canvas { display: block; border-radius: 8px; height: 160px; }
+  .fylle-chart-timelabels { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text2); margin-top: 6px; }
+
+  /* Fylle cooldown countdown */
+  .fylle-cooldown {
+    text-align: center; padding: 12px 16px; margin-bottom: 8px;
+    background: rgba(124,92,252,0.08); border: 1.5px solid rgba(124,92,252,0.25);
+    border-radius: var(--radius-sm);
+    font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; color: var(--text2);
+  }
+  .fylle-cooldown-timer { font-size: 1.4rem; color: var(--accent); display: block; margin-top: 2px; }
+
+  /* Red blink animation for emoji when fylle > 3 */
+  @keyframes fylleRedBlink1 { 0%,100%{box-shadow:0 0 0 0 rgba(252,40,40,0);} 50%{box-shadow:0 0 0 8px rgba(252,40,40,0.25);} }
+  @keyframes fylleRedBlink2 { 0%,100%{box-shadow:0 0 0 0 rgba(252,40,40,0);} 50%{box-shadow:0 0 0 14px rgba(252,40,40,0.4);} }
+  @keyframes fylleRedBlink3 { 0%,100%{box-shadow:0 0 0 0 rgba(252,40,40,0);} 50%{box-shadow:0 0 0 22px rgba(252,40,40,0.55);} }
+  .fylle-level-emoji.blink-1 { animation: fylleRedBlink1 1.2s ease-in-out infinite; border-radius: 50%; }
+  .fylle-level-emoji.blink-2 { animation: fylleRedBlink2 0.85s ease-in-out infinite; border-radius: 50%; }
+  .fylle-level-emoji.blink-3 { animation: fylleRedBlink3 0.55s ease-in-out infinite; border-radius: 50%; }
+
+  .fylle-vote-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 18px; margin-bottom: 16px;
+  }
+  .fylle-vote-title {
+    font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--text2); margin-bottom: 14px;
+  }
+  .fylle-levels { display: flex; flex-direction: column; gap: 8px; }
+  .fylle-level-btn {
+    width: 100%; text-align: left; background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); padding: 12px 16px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer;
+    display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .fylle-level-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(124,92,252,0.06); }
+  .fylle-level-btn.active {
+    border-color: var(--accent2); background: rgba(252,92,124,0.1);
+    box-shadow: 0 0 0 1px rgba(252,92,124,0.2);
+  }
+  .fylle-level-btn-emoji { font-size: 1.4rem; flex-shrink: 0; }
+  .fylle-level-btn-text { flex: 1; font-size: 0.88rem; }
+  .fylle-level-btn-votes { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.72rem; color: var(--text2); }
+  .fylle-level-bar { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(252,92,124,0.07); transition: width 0.6s ease; pointer-events: none; }
+
+  .fylle-voters-card {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px;
+  }
+  .fylle-voters-title {
+    font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--text2); margin-bottom: 10px;
+  }
+  .fylle-voters-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .fylle-voter-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 100px; padding: 4px 10px 4px 4px; font-size: 0.75rem;
+  }
+  .fylle-chip-av { width: 22px; height: 22px; font-size: 0.5rem; }
+  .fylle-sync-info { text-align: center; font-size: 0.68rem; color: var(--text2); margin-top: 4px; opacity: 0.6; }
+  .fylle-pulse { animation: fyllePulse 0.5s ease; }
+  @keyframes fyllePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(252,92,124,0.4); }
+    50%  { box-shadow: 0 0 0 10px rgba(252,92,124,0); }
+    100% { box-shadow: 0 0 0 0 rgba(252,92,124,0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loadingScreen">
+  <div class="loading-logo">Shpadoinkle!</div>
+  <div class="loading-spin"></div>
+</div>
+
+<div class="app-toast" id="appToast"></div>
+
+<!-- ── START ── -->
+<div id="startScreen" class="screen">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:200px 100px;">
+    <div class="start-logo"><img src="https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davidlogga.png?alt=media" alt="David Logga"></div>
+    <p class="start-sub">Välj din användare eller skapa ny</p>
+    <div class="users-grid" id="usersGrid"></div>
+    <div style="width:100%;max-width:480px;text-align:center;">
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: LOGIN ── -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div class="av profile-av-big" id="loginAv" style="pointer-events:none;width:80px;height:80px;font-size:2rem;border:3px solid var(--accent);margin:0 auto 12px;"></div>
+      <h2 id="loginTitle" style="margin-bottom:3px;"></h2>
+      <p style="margin-bottom:0;">Ange ditt lösenord för att fortsätta</p>
+    </div>
+    <div style="position:relative;">
+      <input class="input-field" type="password" id="loginPw" placeholder="Lösenord..." onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:48px;">
+      <button onclick="toggleLoginPw()" title="Visa/dölj lösenord" style="position:absolute;right:12px;top:50%;transform:translateY(-60%);background:none;border:none;cursor:pointer;color:var(--text2);font-size:1.1rem;padding:4px;" id="loginPwToggle">👁</button>
+    </div>
+    <div class="modal-error" id="loginErr" style="display:none"></div>
+    <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">Logga in →</button>
+    <button class="btn btn-secondary" onclick="closeModal('loginModal')">Avbryt</button>
+  </div>
+</div>
+
+<!-- ── MODAL: CREATE USER ── -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <h2>Ny användare</h2>
+    <p>Välj namn, profilbild och lösenord</p>
+    <div class="photo-picker" onclick="document.getElementById('newPhotoInput').click()">
+      <input type="file" id="newPhotoInput" accept="image/*" onchange="handleNewPhoto(this)">
+      <div class="av photo-picker-av" id="newPhotoPreview" style="width:54px;height:54px;font-size:1.3rem;">📷</div>
+      <div class="photo-picker-info">
+        <span class="photo-picker-label">Välj profilbild</span>
+        <span class="photo-picker-sub">JPG, PNG eller GIF — valfritt</span>
+      </div>
+      <span style="color:var(--text2);font-size:1rem;">→</span>
+    </div>
+    <input class="input-field" type="text" id="newName" placeholder="Ditt namn..." maxlength="20">
+    <input class="input-field" type="password" id="newPw" placeholder="Lösenord...">
+    <input class="input-field" type="password" id="newPw2" placeholder="Bekräfta lösenord..." onkeydown="if(event.key==='Enter')doCreate()">
+    <div class="modal-error" id="createErr" style="display:none"></div>
+    <button class="btn btn-primary" id="createBtn" onclick="doCreate()">Skapa konto →</button>
+    <button class="btn btn-secondary" onclick="closeModal('createModal')">Avbryt</button>
+  </div>
+</div>
+
+<!-- ── MODAL: PROFILE ── -->
+<div class="modal-overlay" id="profileModal" onclick="if(event.target===this)closeModal('profileModal')">
+  <div class="modal" style="text-align:center;">
+    <div class="maiden" id="profileModalTitle" style="font-size:2rem;margin-bottom:4px;"></div>
+    <p>Klicka på bilden för att byta profilbild</p>
+    <div class="av profile-av-big" id="profileAv" onclick="document.getElementById('profilePhotoInput').click()" title="Byt bild" style="margin:0 auto 6px;"></div>
+    <input type="file" id="profilePhotoInput" accept="image/*" style="display:none" onchange="handleProfilePhoto(this)">
+    <div style="font-size:0.75rem;color:var(--text2);margin-bottom:22px;" id="profileNameLabel"></div>
+    <button class="btn btn-primary" id="saveProfileBtn" onclick="saveProfile()">💾 Spara bild</button>
+    <button class="btn btn-ghost-red" onclick="clearProfilePhoto()">🗑️ Ta bort bild</button>
+    <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:20px;display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-primary" id="notificationBtn" onclick="toggleNotifications()" style="display:none;">
+        <span id="notificationBtnIcon">🔔</span>
+        <span id="notificationBtnText">Aktivera notiser</span>
+      </button>
+      <div id="notificationStatus" style="font-size:0.75rem;color:var(--text2);text-align:center;display:none;"></div>
+      <button class="btn btn-ghost-red" onclick="logout()">🚪 Logga ut</button>
+      <button class="btn btn-secondary" onclick="closeModal('profileModal')">Stäng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: BINGO INSPECT ── -->
+<div class="modal-overlay" id="bingoInspectModal">
+  <div class="modal" style="max-width:480px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <div id="bingoInspectAv"></div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;" id="bingoInspectName"></div>
+        <div style="font-size:0.78rem;color:var(--accent3);">🎯 Har bingo!</div>
+      </div>
+    </div>
+    <div class="bingo-inspect-grid" id="bingoInspectGrid"></div>
+    <button class="btn btn-secondary" onclick="closeModal('bingoInspectModal')">Stäng</button>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="mainScreen" class="screen">
+  <div class="app-header">
+    <div class="maiden">
+    <div class="header-left" onclick="openProfile()" title="Redigera profil">
+      <div class="av header-av" id="headerAv"></div>
+      <div class="header-name" id="headerName"></div></div>
+    </div>
+    <div class="header-right">
+      <button class="refresh-btn" onclick="refreshPage()" title="Uppdatera sidan (F5)">🔄</button>
+    </div>
+  </div>
+  <div id="bingoBanner" onclick="handleBingoBannerClick()"></div>
+
+  <div id="tab1" class="tab-content active">
+    <div class="section-title"><div class="maiden">Poängliga</div></div>
+    <div id="leaderboard"></div>
+    <div class="history-section">
+      <div class="section-title" style="font-size:1.1rem;"><div class="maiden">Mina svar</div>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <div id="tab2" class="tab-content">
+    <div class="section-title"><div class="maiden">Aktuell fråga</div></div>
+    <div id="questionArea"></div>
+  </div>
+
+  <div id="tab3" class="tab-content">
+    <div class="section-title"><div class="maiden">Skicka in fråga</div></div>
+    <div class="success-msg" id="submitOk">✅ Din fråga har skickats in!</div>
+    <div class="form-group">
+      <label class="form-label">Skriv in din egen fråga så kanske Quiz-chefen tar med den!</label>
+      <textarea class="input-field" id="subQ" rows="3" placeholder="Skriv din fråga här..." style="resize:vertical;"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Svarsalternativ</label>
+      <div class="opts-list" id="subOptsList"></div>
+      <button class="add-opt-btn" onclick="addSubOpt()">+ Lägg till alternativ</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rätt svar — nummer </label>
+      <input class="input-field" type="number" id="subCorrect" placeholder="t.ex. 2">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Bild (valfritt)</label>
+      <div class="upload-area" onclick="document.getElementById('subImgInput').click()">
+        <div style="font-size:1.8rem;margin-bottom:6px;">🖼️</div>
+        <div style="font-size:0.84rem;color:var(--text2);">Klicka för att ladda upp bild</div>
+        <input type="file" id="subImgInput" accept="image/*" onchange="handleSubImg(this)">
+        <img id="subImgPrev" class="upload-preview">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitQ()">Skicka in fråga →</button>
+   <!----------- <div class="card-header">
+    <h2 class="card-title">📢 Skicka Global Notis</h2>
+  </div>
+  <div style="padding: 15px;">
+    <input type="text" id="globalNotisTitle" class="input-field" placeholder="Rubrik (t.ex. Viktigt!)" style="margin-bottom: 10px;">
+    <textarea id="globalNotisBody" class="input-field" placeholder="Meddelande till alla..." style="margin-bottom: 10px; min-height: 80px;"></textarea>
+    <button class="btn btn-primary" onclick="sendGlobalPush()" style="width: 100%;">Skicka till alla</button>
+  </div> --->
+  </div>
+
+  <div id="tab4" class="tab-content">
+    <div class="bingo-title"><div class="maiden">David-Bingo</div></div>
+    <p class="bingo-sub">TRYCK PÅ EN RUTA NÄR DU SER DAVID GÖRA DET ELLER DU SJÄLV LÖST UPPGIFTEN!</p>
+    <div id="bingoWinners"></div>
+    <div class="bingo-grid" id="bingoGrid"></div>
+  </div>
+
+  <div id="tab5" class="tab-content">
+    <div class="section-title"><div class="maiden">Betting</div></div>
+
+    <!-- Betting Stats -->
+    <div id="bettingStats" style="margin-bottom:16px;display:none;">
+      <div style="font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text2);margin-bottom:10px;">📊 Min betstatistik</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;" id="betStatsGrid"></div>
+      <div id="betLeaderboard" style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px;"></div>
+    </div>
+
+    <!-- Create new bet -->
+    <div class="bet-create-box" id="betCreateBox">
+      <div class="bet-create-toggle" onclick="toggleBetCreate()">
+        <span>➕ Skapa ett bet</span>
+        <span class="bet-create-arrow" id="betCreateArrow">▼</span>
+      </div>
+      <div class="bet-create-form" id="betCreateForm">
+        <textarea class="input-field" id="betQuestion" rows="2" placeholder="Vad handlar betet om? t.ex. 'Ramlar David innan midnatt?'" style="resize:none;margin-top:12px;"></textarea>
+        <div id="betOptionsList"></div>
+        <button class="add-opt-btn" onclick="addBetOption()" style="margin-bottom:12px;">+ Lägg till alternativ</button>
+
+        <!-- Target users picker -->
+        <div class="bet-target-section">
+          <div class="bet-target-label">Vem kan delta?</div>
+          <div class="bet-target-toggle">
+            <button class="bet-target-btn active" id="betTargetAll" onclick="setBetTarget('all')">🌐 Alla</button>
+            <button class="bet-target-btn" id="betTargetSpecific" onclick="setBetTarget('specific')">🎯 Utmana specifika</button>
+          </div>
+          <div id="betUserPicker" style="display:none;">
+            <div class="bet-user-picker" id="betUserChips"></div>
+            <div style="font-size:0.72rem;color:var(--text2);margin-top:6px;">Välj vilka som ska kunna delta i betet</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="createBet()" style="margin-top:4px;">Skapa bet →</button>
+      </div>
+    </div>
+
+    <!-- Active bets -->
+    <div style="margin-top:20px;">
+      <div style="font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Aktiva bets</div>
+      <div id="betsList"><div class="empty-state">Laddar…</div></div>
+    </div>
+
+    <!-- Settled bets -->
+    <div style="margin-top:28px;">
+      <div style="font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Avgjorda bets</div>
+      <div id="settledBetsList"><div class="empty-state" style="font-size:0.82rem;">Inga avgjorda bets ännu.</div></div>
+    </div>
+  </div>
+
+  <div id="tab6" class="tab-content">
+    <div class="section-title"><div class="maiden">Fyllemätaren</div></div>
+    <div class="bingo-sub">DAVIDS UPPSKATTADE FYLLENIVÅ:</div>
+
+    <!-- Live meter -->
+    <div class="fylle-hero" id="fylleHero">
+      <div class="fylle-level-emoji" id="fylle-emoji">🤔</div>
+      <div class="fylle-avg-value" id="fylle-avg">–</div>
+      <div class="fylle-level-label" id="fylle-label">Inga röster ännu</div>
+      <div class="fylle-voter-count" id="fylle-voter-count"></div>
+    </div>
+
+    <!-- Chart -->
+    <div class="fylle-chart-card">
+      <div class="fylle-chart-title">📈 Fyllekurvan under dagen</div>
+      <div class="fylle-chart-scroll-wrapper" id="fylleChartWrapper">
+        <canvas id="fylleCanvas" class="fylle-chart-canvas" height="160"></canvas>
+      </div>
+      <div class="fylle-chart-timelabels" id="fylleTimeLabels"></div>
+    </div>
+
+
+    <div class="fylle-vote-card" id="fylleVoteCard">
+      <div class="fylle-vote-title" id="fylle-vote-title">Din bedömning</div>
+      <div id="fylleCooldownBox" style="display:none;">
+        <div class="fylle-cooldown">
+          Du kan uppdatera din röst om<span class="fylle-cooldown-timer" id="fylleCooldownTimer">10</span>
+        </div>
+      </div>
+      <div class="fylle-levels" id="fylleLevels"></div>
+    </div>
+
+    <!-- Who voted -->
+    <div class="fylle-voters-card" id="fylleVotersCard" style="display:none;">
+      <div class="fylle-voters-title">Röstare</div>
+      <div class="fylle-voters-list" id="fylleVotersList"></div>
+    </div>
+
+    <div class="fylle-sync-info">Din röst är giltig för medelvärdet i 60 min - glöm inte att uppdatera under dagen!</div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(1,this)"><span class="tab-icon">🏆</span><span>Poäng</span></button>
+    <button class="tab-btn" onclick="switchTab(2,this)"><span class="tab-icon">❓</span><span>Fråga</span></button>
+    <button class="tab-btn" onclick="switchTab(3,this)"><span class="tab-icon">➕</span><span>Skicka in</span></button>
+    <button class="tab-btn" onclick="switchTab(4,this)"><span class="tab-icon">🎯</span><span>Bingo</span></button>
+    <button class="tab-btn" onclick="switchTab(5,this)"><span class="tab-icon">🎰</span><span>Betting</span></button>
+    <button class="tab-btn" onclick="switchTab(6,this)"><span class="tab-icon">🍺</span><span>Fylla</span></button>
+  </div>
+</div>
+
+<!-- Firebase SDKs (modular via CDN compat build) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+
+<script>
+
+ async function sendGlobalPush() {
+  const title = document.getElementById('globalNotisTitle').value.trim();
+  const body = document.getElementById('globalNotisBody').value.trim();
+
+  if (!title || !body) {
+    showToast('❌ Fyll i både rubrik och meddelande!', true);
+    return;
+  }
+
+  if (!confirm('Vill du verkligen skicka denna notis till ALLA deltagare?')) return;
+
+  try {
+    // 1. Hämta alla användare från Firestore som har en token
+    const snapshot = await db.collection('users').get();
+    const tokens = [];
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.fcmToken) {
+        tokens.push(data.fcmToken);
+      }
+    });
+
+    if (tokens.length === 0) {
+      showToast('❌ Inga användare har notiser aktiverade.', true);
+      return;
+    }
+
+    // 2. Skicka till Render-servern med korrekt format (inklusive tokens)
+    const response = await fetch('https://notiser.onrender.com/send-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tokens: tokens, // Detta är vad servern saknade!
+        title: title,
+        body: body,
+        data: { type: 'admin_msg' }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Servern svarade: ${response.status} - ${errorText}`);
+    }
+    
+    showToast(`🚀 Notis skickad till ${tokens.length} enheter!`);
+    
+    // Rensa fälten efter lyckat skickande
+    document.getElementById('globalNotisTitle').value = '';
+    document.getElementById('globalNotisBody').value = '';
+    
+  } catch (err) {
+    console.error('Push-fel:', err);
+    showToast('❌ Fel: ' + err.message, true);
+  }
+}
+// ═══════════════════════════════════════════════
+// FIREBASE INIT
+// ═══════════════════════════════════════════════
+
+async function triggerPushNotis(token, rubrik, meddelande) {
+    try {
+        const response = await fetch('https://din-backend-url.onrender.com/send-notification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                token: token,      // Token du hämtat från användaren
+                title: rubrik,     // T.ex. "Nytt uppdrag!"
+                body: meddelande    // T.ex. "Gå till baren och sök efter..."
+            })
+        });
+
+        if (response.ok) {
+            console.log("Notis begärd!");
+        } else {
+            console.error("Något gick fel på servern");
+        }
+    } catch (error) {
+        console.error("Kunde inte nå backenden:", error);
+    }
+}
+  
+  const firebaseConfig = {
+  apiKey: "AIzaSyBsxDTCvqSEevSpTsbTnJKo79VC0muDsNI",
+  authDomain: "davids-svensexa.firebaseapp.com",
+  projectId: "davids-svensexa",
+  storageBucket: "davids-svensexa.firebasestorage.app",
+  messagingSenderId: "488864098079",
+  appId: "1:488864098079:web:8f7e4022dea9033736b22a",
+  measurementId: "G-4NP018ME54"
+};
+  if (!window.firebase) {
+  console.error('Firebase SDK kunde inte laddas');
+  document.getElementById('loadingScreen').innerHTML = '<div class="loading-logo">Fel vid laddning</div><p style="color:var(--text2);margin-top:10px;">Kontrollera din internetanslutning</p>';
+}
+firebase.initializeApp(firebaseConfig);
+const db  = firebase.firestore();
+const storage = firebase.storage();
+
+// ═══════════════════════════════════════════════
+// FIREBASE CLOUD MESSAGING (PUSH NOTIFICATIONS)
+// ═══════════════════════════════════════════════
+let messaging = null;
+let notificationsEnabled = false;
+
+  //----------------------------------------------
+
+// 2. Uppdaterad sendNotification-funktion
+async function sendNotification(title, body) {
+  // Visa toast direkt om appen är öppen
+  if (!document.hidden) {
+    if (typeof showToast === 'function') showToast(title + ': ' + body);
+  }
+
+  try {
+    // 1. Hämta alla tokens från Firestore
+    const usersSnap = await db.collection('users').get();
+    const tokens = [];
+    
+    usersSnap.forEach(doc => {
+      const data = doc.data();
+      // Skicka till alla som har token, utom mig själv
+      if (data.fcmToken && (typeof cu === 'undefined' || !cu || doc.id !== cu.id)) {
+        tokens.push(data.fcmToken);
+      }
+    });
+
+    if (tokens.length === 0) {
+      console.log('Inga tokens hittades i Firestore.');
+      return;
+    }
+
+    // 2. Skicka till din Render-backend
+    const response = await fetch('https://notiser.onrender.com/send-notification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        tokens: tokens,
+        title: title,
+        body: body
+      })
+    });
+
+    const result = await response.json();
+    console.log('Push-resultat via Render:', result);
+
+  } catch (error) {
+    console.error('Fel vid push-processen:', error);
+  }
+} // <--- HÄR ska funktionen sluta. Inget får ligga löst under denna rad!
+  //------------
+  
+// VAPID key från Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
+const VAPID_KEY = 'BLpEdopxGCZhZOve276RyMMLEGq3X2Njqr9OrH2yPhlD0csMb-bZgDRjOxOtUX7ctg6eDnmEinlTogJAe0KIUQ4'; // ← Ersätt med din VAPID-nyckel
+
+// Kolla om notiser stöds i denna webbläsare
+try {
+  if ('Notification' in window && firebase.messaging) {
+    // Enklare check - skapa messaging direkt
+    try {
+      messaging = firebase.messaging();
+      console.log('Firebase Messaging initialiserat!');
+      
+      // Hantera inkommande notiser när appen är öppen (foreground)
+      messaging.onMessage((payload) => {
+        console.log('Notis mottagen i förgrunden:', payload);
+        
+        const title = payload.notification?.title || 'Davids Svensexa';
+        const body = payload.notification?.body || 'Ny händelse!';
+        
+        if (Notification.permission === 'granted') {
+          new Notification(title, {
+            body: body,
+            icon: 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davidlogga.png?alt=media',
+            badge: 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Dave1.png?alt=media',
+            vibrate: [200, 100, 200]
+          });
+        }
+      });
+    } catch (msgErr) {
+      console.log('Kunde inte initiera messaging:', msgErr);
+      messaging = null;
+    }
+  } else {
+    console.log('Firebase Messaging stöds inte i denna miljö');
+  }
+} catch (err) {
+  console.log('Messaging fel:', err);
+}
+
+// Funktion för att begära notistillåtelse och få FCM token
+async function requestNotificationPermission() {
+  if (!messaging) {
+    alert('Push-notiser stöds inte i denna webbläsare');
+    return null;
+  }
+  
+  try {
+    const permission = await Notification.requestPermission();
+    
+    if (permission === 'granted') {
+      console.log('Notistillåtelse beviljad');
+      
+      // 1. Registrera Service Worker
+      const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+      console.log('Service Worker registrerad. Status:', registration);
+
+      // 2. VÄNTA tills Service Workern är helt redo (Fixar AbortError)
+      // Vi väntar tills det finns en 'active' worker
+      if (!registration.active) {
+        console.log('Väntar på att Service Worker ska aktiveras...');
+        await new Promise((resolve) => {
+          const interval = setInterval(() => {
+            if (registration.active) {
+              clearInterval(interval);
+              resolve();
+            }
+          }, 100);
+        });
+      }
+      
+      console.log('Service Worker är nu aktiv!');
+
+      // 3. Hämta FCM token
+      const token = await messaging.getToken({
+        vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: registration
+      });
+      
+      console.log('FCM Token:', token);
+      notificationsEnabled = true;
+      
+      // 4. Spara token i Firestore för användaren
+      if (cu && cu.id) {
+        await db.collection('users').doc(cu.id).update({
+          fcmToken: token,
+          notificationsEnabled: true,
+          tokenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('FCM token sparad i Firestore');
+      }
+      
+      return token;
+    } else {
+      console.log('Notistillåtelse nekad');
+      return null;
+    }
+  } catch (error) {
+    console.error('Fel vid begäran om notistillåtelse:', error);
+    return null;
+  }
+}
+
+// Funktion för att inaktivera notiser
+async function disableNotifications() {
+  if (cu && cu.id) {
+    try {
+      await db.collection('users').doc(cu.id).update({
+        fcmToken: null,
+        notificationsEnabled: false
+      });
+      notificationsEnabled = false;
+      console.log('Notiser inaktiverade');
+    } catch (error) {
+      console.error('Fel vid inaktivering av notiser:', error);
+    }
+  }
+}
+
+// Lyssna på token-uppdateringar (t.ex. när token förnyas)
+if (messaging) {
+  // Vi kollar status direkt vid laddning istället för att vänta på en "refresh"-händelse
+  navigator.serviceWorker.ready.then((registration) => {
+    messaging.getToken({ 
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration 
+    })
+    .then(async (currentToken) => {
+      if (currentToken && cu && cu.id) {
+        // Uppdatera tyst i bakgrunden om det behövs
+        await db.collection('users').doc(cu.id).update({
+          fcmToken: currentToken,
+          tokenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        console.log('FCM Token verifierad/uppdaterad');
+      }
+    })
+    .catch((err) => {
+      console.log('Kunde inte auto-uppdatera token:', err);
+    });
+  });
+}
+
+// Firestore collections:
+// users/{uid}         → { name, password, points, photo (URL), history: [] }
+// questions/{id}      → { text, options, correctIndex, points, image (URL), graded, active }
+// answers/{qid_uid}   → { questionId, userId, answerIndex }
+// submitted/{id}      → { text, options, correctIndex, image, submittedBy, status }
+// adminQuestions/{id} → { text, options, correctIndex, points, image (URL) }
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let cu = null;           // current user object
+let cachedUsers = [];    // all users, loaded on login
+let pendingUser = null;
+let newPhotoFile = null;
+let profilePhotoFile = null;
+let profilePhotoPreviewUrl = null;
+let subImgFile = null;
+let _sel = undefined;
+
+// Firestore realtime listeners (unsubscribe functions)
+let unsubQuestion = null;
+let unsubUsers = null;
+
+// ═══════════════════════════════════════════════
+// AVATAR HELPERS
+// ═══════════════════════════════════════════════
+function mountAv(el, user, size) {
+  if (!el) return;
+  if (size) { el.style.width = size + 'px'; el.style.height = size + 'px'; el.style.fontSize = (size * 0.42) + 'px'; }
+  el.innerHTML = '';
+  if (user && user.photo) {
+    const img = document.createElement('img');
+    img.src = user.photo; img.alt = user.name || '';
+    el.appendChild(img);
+  } else {
+    el.textContent = (user && user.name) ? user.name[0].toUpperCase() : '?';
+  }
+}
+
+function avHTML(user, size, cls = '') {
+  const st = `width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px;`;
+  const letter = (user && user.name) ? user.name[0].toUpperCase() : '?';
+  if (user && user.photo) {
+    return `<div class="av ${cls}" style="${st}"><img src="${user.photo}" alt="${user.name || ''}"></div>`;
+  }
+  return `<div class="av ${cls}" style="${st}">${letter}</div>`;
+}
+
+// ═══════════════════════════════════════════════
+// IMAGE COMPRESSION
+// ═══════════════════════════════════════════════
+function compressFile(file, maxPx = 300) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > maxPx) { h = h * maxPx / w; w = maxPx; } }
+        else        { if (h > maxPx) { w = w * maxPx / h; h = maxPx; } }
+        const c = document.createElement('canvas');
+        c.width = Math.round(w); c.height = Math.round(h);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(blob => resolve(blob), 'image/jpeg', 0.82);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadToStorage(path, blob) {
+  const ref = storage.ref(path);
+  await ref.put(blob);
+  return await ref.getDownloadURL();
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function showToast(msg, isError = false) {
+  const t = document.getElementById('appToast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'var(--wrong)' : 'var(--correct)';
+  t.style.color       = isError ? 'var(--wrong)' : 'var(--correct)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════════
+// START SCREEN
+// ═══════════════════════════════════════════════
+async function renderStart() {
+  showScreen('startScreen');
+  const grid = document.getElementById('usersGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text2);font-size:0.85rem;">Laddar…</div>';
+
+  const snap = await db.collection('users').orderBy('points', 'desc').get();
+  grid.innerHTML = '';
+
+  snap.forEach(doc => {
+    const u = { id: doc.id, ...doc.data() };
+    const d = document.createElement('div');
+    d.className = 'user-card';
+    d.innerHTML = `
+      ${avHTML(u, 62, 'user-card-av')}
+      <div class="user-name">${u.name}</div>
+      <div class="user-pts">${u.points || 0}p</div>
+    `;
+    d.onclick = () => openLogin(u);
+    grid.appendChild(d);
+  });
+
+  const add = document.createElement('div');
+  add.className = 'new-user-card';
+  add.innerHTML = `<div class="plus">＋</div><div class="label">Ny användare</div>`;
+  add.onclick = openCreateModal;
+  grid.appendChild(add);
+
+  document.getElementById('loadingScreen').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+  ['loginErr', 'createErr'].forEach(e => {
+    const el = document.getElementById(e); if (el) el.style.display = 'none';
+  });
+}
+
+function openLogin(user) {
+  pendingUser = user;
+  document.getElementById('loginTitle').textContent = `Hej, ${user.name}!`;
+  document.getElementById('loginPw').value = '';
+  document.getElementById('loginPw').type = 'password';
+  const pwToggle = document.getElementById('loginPwToggle');
+  if (pwToggle) pwToggle.textContent = '👁';
+  mountAv(document.getElementById('loginAv'), user);
+  openModal('loginModal');
+  setTimeout(() => document.getElementById('loginPw').focus(), 120);
+}
+
+function openCreateModal() {
+  newPhotoFile = null;
+  ['newName', 'newPw', 'newPw2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('newPhotoInput').value = '';
+  const p = document.getElementById('newPhotoPreview');
+  p.innerHTML = '📷'; p.style.background = '';
+  openModal('createModal');
+}
+
+function openProfile() {
+  profilePhotoFile = null;
+  profilePhotoPreviewUrl = cu.photo || null;
+  const el = document.getElementById('profileAv');
+  el.style.width = '88px'; el.style.height = '88px'; el.style.fontSize = '2.2rem';
+  mountAv(el, cu);
+  document.getElementById('profileNameLabel').textContent = cu.name;
+  document.getElementById('profileModalTitle').textContent = cu.name;
+  document.getElementById('profilePhotoInput').value = '';
+  
+  // Uppdatera notis-status
+  updateNotificationButton();
+  
+  openModal('profileModal');
+}
+
+// ═══════════════════════════════════════════════
+// PHOTO HANDLERS
+// ═══════════════════════════════════════════════
+function handleNewPhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  newPhotoFile = f;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const p = document.getElementById('newPhotoPreview');
+    p.innerHTML = `<img src="${e.target.result}" alt="preview">`;
+    p.style.background = 'none';
+  };
+  reader.readAsDataURL(f);
+}
+
+function handleProfilePhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  profilePhotoFile = f;
+  const reader = new FileReader();
+  reader.onload = e => {
+    profilePhotoPreviewUrl = e.target.result;
+    const el = document.getElementById('profileAv');
+    el.style.width = '88px'; el.style.height = '88px'; el.style.fontSize = '2.2rem';
+    mountAv(el, { name: cu.name, photo: e.target.result });
+  };
+  reader.readAsDataURL(f);
+}
+
+function handleSubImg(input) {
+  const f = input.files[0]; if (!f) return;
+  subImgFile = f;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const p = document.getElementById('subImgPrev');
+    p.src = e.target.result; p.style.display = 'block';
+  };
+  reader.readAsDataURL(f);
+}
+
+function clearProfilePhoto() {
+  profilePhotoFile = null;
+  profilePhotoPreviewUrl = null;
+  const el = document.getElementById('profileAv');
+  el.style.width = '88px'; el.style.height = '88px'; el.style.fontSize = '2.2rem';
+  mountAv(el, { name: cu.name, photo: null });
+}
+
+// ═══════════════════════════════════════════════
+// SAVE PROFILE PHOTO
+// ═══════════════════════════════════════════════
+async function saveProfile() {
+  const btn = document.getElementById('saveProfileBtn');
+  btn.disabled = true; btn.textContent = 'Sparar…';
+  try {
+    let photoURL = profilePhotoPreviewUrl;
+    if (profilePhotoFile) {
+      const blob = await compressFile(profilePhotoFile, 300);
+      photoURL = await uploadToStorage(`avatars/${cu.id}.jpg`, blob);
+    }
+    await db.collection('users').doc(cu.id).update({ photo: photoURL || null });
+    cu = { ...cu, photo: photoURL || null };
+    updateHeader();
+    closeModal('profileModal');
+    showToast('✅ Profilbild sparad!');
+  } catch (e) {
+    showToast('❌ Kunde inte spara: ' + e.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Spara bild';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// LOGIN / CREATE / LOGOUT
+// ═══════════════════════════════════════════════
+function toggleLoginPw() {
+  const f = document.getElementById('loginPw');
+  const btn = document.getElementById('loginPwToggle');
+  if (f.type === 'password') { f.type = 'text'; btn.textContent = '🙈'; }
+  else { f.type = 'password'; btn.textContent = '👁'; }
+}
+
+async function doLogin() {
+  const pw = document.getElementById('loginPw').value;
+  const err = document.getElementById('loginErr');
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Loggar in…';
+  try {
+    // Fetch fresh user data from Firestore
+    const doc = await db.collection('users').doc(pendingUser.id).get();
+    if (!doc.exists) { err.textContent = '❌ Användaren finns inte.'; err.style.display = 'block'; return; }
+    const user = { id: doc.id, ...doc.data() };
+    if (pw !== user.password) {
+      err.textContent = '❌ Fel lösenord – försök igen.';
+      err.style.display = 'block';
+      document.getElementById('loginPw').value = '';
+      document.getElementById('loginPw').focus();
+      return;
+    }
+    closeModal('loginModal');
+    loginAs(user);
+  } catch (e) {
+    err.textContent = '❌ Fel: ' + e.message; err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Logga in →';
+  }
+}
+
+async function doCreate() {
+  const name = document.getElementById('newName').value.trim();
+  const pw   = document.getElementById('newPw').value;
+  const pw2  = document.getElementById('newPw2').value;
+  const err  = document.getElementById('createErr');
+  const btn  = document.getElementById('createBtn');
+
+  if (!name)       { err.textContent = 'Ange ett namn.'; err.style.display = 'block'; return; }
+  if (pw.length < 3) { err.textContent = 'Lösenordet måste vara minst 3 tecken.'; err.style.display = 'block'; return; }
+  if (pw !== pw2)  { err.textContent = 'Lösenorden matchar inte.'; err.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Skapar…';
+  try {
+    // Check name uniqueness
+    const existing = await db.collection('users').where('name', '==', name).get();
+    if (!existing.empty) { err.textContent = 'Det finns redan en användare med det namnet.'; err.style.display = 'block'; return; }
+
+    // Upload photo if chosen
+    let photoURL = null;
+    if (newPhotoFile) {
+      const blob = await compressFile(newPhotoFile, 300);
+      const tempId = Date.now().toString();
+      photoURL = await uploadToStorage(`avatars/${tempId}.jpg`, blob);
+    }
+
+    const ref = await db.collection('users').add({
+      name, password: pw, points: 0, history: [], photo: photoURL
+    });
+    // Rename the avatar file with real id if uploaded
+    const user = { id: ref.id, name, password: pw, points: 0, history: [], photo: photoURL };
+    closeModal('createModal');
+    loginAs(user);
+  } catch (e) {
+    err.textContent = '❌ Fel: ' + e.message; err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Skapa konto →';
+  }
+}
+
+function loginAs(user, restoredTab) {
+  cu = user;
+  localStorage.setItem('svensexa_uid', user.id);
+  showScreen('mainScreen');
+  history.replaceState({ screen: 'app', tab: restoredTab || 1 }, '');
+  history.pushState({ screen: 'app', tab: restoredTab || 1 }, '');
+  
+  // Cache all users for bet target picker
+  db.collection('users').get().then(snap => {
+    cachedUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  });
+  
+  renderApp();
+  startListeners();
+  
+  // ═══ Starta notis-lyssnare ═══
+  startNotificationListeners();
+  
+  // Switch to the saved tab (avoids default tab-1 on reload)
+  if (restoredTab && restoredTab !== 1) {
+    switchTab(restoredTab, null);
+  }
+}
+
+function logout() {
+  if (!confirm('Vill du verkligen logga ut?')) return;
+  stopListeners();
+  cu = null;
+  localStorage.removeItem('svensexa_uid');
+  localStorage.removeItem('svensexa_tab');
+  history.replaceState({ screen: 'start' }, '');
+  closeModal('profileModal')
+  renderStart();
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICATION FUNCTIONS
+// ═══════════════════════════════════════════════
+function updateNotificationButton() {
+  const btn = document.getElementById('notificationBtn');
+  const icon = document.getElementById('notificationBtnIcon');
+  const text = document.getElementById('notificationBtnText');
+  const status = document.getElementById('notificationStatus');
+  
+  // Visa bara notis-knappen om webbläsaren stöder det
+if (!messaging) {
+  console.log('Messaging är inte tillgängligt');
+  btn.style.display = 'flex'; // Visa ändå för debug
+  text.textContent = 'Notiser stöds ej';
+  btn.disabled = true;
+  status.style.display = 'block';
+  status.textContent = 'Din webbläsare stöder inte push-notiser';
+  status.style.color = 'var(--wrong)';
+  return;
+}
+  
+  btn.style.display = 'flex';
+  
+  // Kontrollera nuvarande notis-tillstånd
+  const permission = Notification.permission;
+  
+  if (permission === 'granted') {
+    icon.textContent = '🔔';
+    text.textContent = 'Notiser aktiverade';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-secondary');
+    status.style.display = 'block';
+    status.textContent = '✓ Du får notiser för nya händelser';
+    status.style.color = 'var(--correct)';
+  } else if (permission === 'denied') {
+    icon.textContent = '🔕';
+    text.textContent = 'Notiser blockerade';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-ghost-red');
+    btn.disabled = true;
+    status.style.display = 'block';
+    status.textContent = 'Notiser är blockerade i webbläsaren. Ändra i inställningar.';
+    status.style.color = 'var(--wrong)';
+  } else {
+    icon.textContent = '🔔';
+    text.textContent = 'Aktivera notiser';
+    btn.classList.add('btn-primary');
+    btn.classList.remove('btn-secondary', 'btn-ghost-red');
+    btn.disabled = false;
+    status.style.display = 'none';
+  }
+}
+
+async function toggleNotifications() {
+  const permission = Notification.permission;
+  
+  if (permission === 'default') {
+    // Begär tillstånd
+    const btn = document.getElementById('notificationBtn');
+    const originalText = document.getElementById('notificationBtnText').textContent;
+    document.getElementById('notificationBtnText').textContent = 'Begär tillstånd...';
+    btn.disabled = true;
+    
+    const token = await requestNotificationPermission();
+    
+    btn.disabled = false;
+    
+    if (token) {
+      updateNotificationButton();
+      alert('Notiser aktiverade! 🎉');
+    } else {
+      updateNotificationButton();
+    }
+  } else if (permission === 'granted') {
+    // Inaktivera notiser
+    if (confirm('Vill du inaktivera notiser?')) {
+      await disableNotifications();
+      updateNotificationButton();
+    }
+  }
+}
+
+function refreshPage() {
+  const btn = document.querySelector('.refresh-btn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  
+  // Uppdatera alla delar av appen utan att logga ut
+  (async () => {
+    try {
+      await renderApp();
+      await renderQuestion();
+    } finally {
+      btn.classList.remove('spinning');
+      btn.disabled = false;
+      showToast('✓ Sidan uppdaterad!');
+    }
+  })();
+}
+
+// ═══════════════════════════════════════════════
+// BACK BUTTON
+// ═══════════════════════════════════════════════
+window.addEventListener('popstate', () => {
+  if (cu) history.pushState({ screen: 'app', tab: currentTab() }, '');
+});
+
+window.addEventListener('keydown', (e) => {
+  if ((e.key === 'F5' || e.key === 'r' && (e.ctrlKey || e.metaKey)) && cu) {
+    e.preventDefault();
+    refreshPage();
+  }
+});
+
+function currentTab() {
+  for (let n = 1; n <= 6; n++) {
+    const el = document.getElementById('tab' + n);
+    if (el && el.classList.contains('active')) return n;
+  }
+  return 1;
+}
+
+// ═══════════════════════════════════════════════
+// SCREEN / TAB
+// ═══════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function switchTab(n, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab' + n).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else { const btns = document.querySelectorAll('.tab-btn'); if (btns[n - 1]) btns[n - 1].classList.add('active'); }
+  if (n === 1) renderLeaderboard();
+  if (n === 2) renderQuestion();
+  if (n === 4) renderBingo();
+  if (n === 5) renderBets();
+  if (n === 6) initFyllemätaren();
+  if (cu) {
+    localStorage.setItem('svensexa_tab', n);
+    history.pushState({ screen: 'app', tab: n }, '');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// REALTIME LISTENERS
+// ═══════════════════════════════════════════════
+let _lastQuestionGradedState = null;
+
+function startListeners() {
+  stopListeners();
+  _lastQuestionGradedState = null;
+
+  // Listen for active question changes
+  unsubQuestion = db.collection('questions').where('active', '==', true)
+    .onSnapshot(snap => {
+      const docs = snap.docs;
+      const q = docs.length ? { id: docs[0].id, ...docs[0].data() } : null;
+      const key = q ? `${q.id}:${!!q.graded}` : 'none';
+
+      const justGraded = _lastQuestionGradedState &&
+        q && q.graded &&
+        _lastQuestionGradedState === `${q.id}:false`;
+
+      _lastQuestionGradedState = key;
+
+      if (justGraded) {
+        // Refresh user points from Firestore and show toast
+        db.collection('users').doc(cu.id).get().then(doc => {
+          if (doc.exists) cu = { id: doc.id, ...doc.data() };
+          updateHeader();
+          renderLeaderboard();
+          if (currentTab() === 2) renderQuestion();
+          const myAnsDoc_key = `${q.id}_${cu.id}`;
+          db.collection('answers').doc(myAnsDoc_key).get().then(aDoc => {
+            if (aDoc.exists) {
+              const correct = aDoc.data().answerIndex === q.correctIndex;
+              showToast(correct ? `🎉 Rätt svar! +${q.points || 1}p` : '😬 Fel svar — se resultatet!');
+            } else {
+              showToast('📊 Frågan är nu rättad!');
+            }
+          });
+        });
+      } else {
+        if (currentTab() === 2) renderQuestion();
+      }
+    });
+
+  // Listen for user list changes (leaderboard)
+  unsubUsers = db.collection('users').orderBy('points', 'desc')
+    .onSnapshot(() => {
+      renderLeaderboard();
+      // Also refresh current user data
+      if (cu) {
+        db.collection('users').doc(cu.id).get().then(doc => {
+          if (doc.exists) { cu = { id: doc.id, ...doc.data() }; updateHeader(); }
+        });
+      }
+    });
+}
+
+function stopListeners() {
+  if (unsubQuestion) { unsubQuestion(); unsubQuestion = null; }
+  if (unsubUsers)    { unsubUsers();    unsubUsers    = null; }
+  if (unsubBingo)    { unsubBingo();    unsubBingo    = null; }
+  stopNotificationListeners();
+}
+
+// ═══════════════════════════════════════════════
+// RENDER APP
+// ═══════════════════════════════════════════════
+function renderApp() {
+  updateHeader();
+  renderLeaderboard();
+  renderSubOpts();
+}
+
+function updateHeader() {
+  const hav = document.getElementById('headerAv');
+  hav.style.width = '38px'; hav.style.height = '38px'; hav.style.fontSize = '0.95rem';
+  mountAv(hav, cu);
+  document.getElementById('headerName').textContent = cu.name;
+  const ptsEl = document.getElementById('headerPts');
+  if (ptsEl) ptsEl.textContent = `${cu.points || 0} p`;
+}
+
+// ═══════════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════════
+async function renderLeaderboard() {
+  const lb = document.getElementById('leaderboard');
+  const hl = document.getElementById('historyList');
+
+  // Leaderboard
+  const snap = await db.collection('users').orderBy('points', 'desc').get();
+  lb.innerHTML = '';
+  if (snap.empty) {
+    lb.innerHTML = '<div class="empty-state">Inga användare ännu.</div>';
+  } else {
+    snap.docs.forEach((doc, i) => {
+      const u = { id: doc.id, ...doc.data() };
+      const rank = i + 1;
+      const isMe = u.id === cu.id;
+      const medals = ['🥇', '🥈', '🥉'];
+      const rankEl = rank <= 3 ? `<div class="lb-medal">${medals[rank - 1]}</div>` : `<div class="lb-rank">${rank}</div>`;
+      const cls = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+      const d = document.createElement('div');
+      d.className = `lb-item ${cls} ${isMe ? 'me' : ''}`;
+      d.innerHTML = `
+        ${rankEl}
+        ${avHTML(u, 42, 'lb-av')}
+        <div class="lb-info">
+          <div class="lb-name">${u.name}${isMe ? ' <span class="me-tag">du</span>' : ''}</div>
+          <div class="lb-sub">${(u.history || []).length} svar</div>
+        </div>
+        <div class="lb-pts">${u.points || 0}p</div>
+      `;
+      lb.appendChild(d);
+    });
+  }
+
+  // History for current user
+  hl.innerHTML = '';
+  const hist = (cu.history || []).slice().reverse();
+  if (!hist.length) {
+    hl.innerHTML = '<div class="empty-state">Du har inte svarat på några frågor än.</div>';
+    return;
+  }
+  hist.forEach(h => {
+    const isPending = h.pending === true;
+    const d = document.createElement('div');
+    d.className = 'hist-item';
+    d.innerHTML = `
+      ${avHTML(cu, 34, 'hist-av')}
+      <div style="flex:1;min-width:0;">
+        <div class="hist-q">${h.question}</div>
+        <div class="hist-meta">
+          ${isPending
+            ? `<span class="rbadge" style="background:rgba(124,92,252,0.15);color:var(--accent);">⏳ Ej rättad</span>`
+            : `<span class="rbadge ${h.correct ? 'rbadge-ok' : 'rbadge-err'}">${h.correct ? '✓ Rätt' : '✗ Fel'}</span>
+               ${h.correct ? `<span class="hist-pts">+${h.points}p</span>` : ''}`
+          }
+          <span class="hist-ans">${h.answer}</span>
+        </div>
+      </div>
+    `;
+    hl.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// QUESTION (TAB 2)
+// ═══════════════════════════════════════════════
+async function renderQuestion() {
+  const area = document.getElementById('questionArea');
+  area.innerHTML = '<div class="no-question"><div class="loading-spin" style="margin:0 auto;"></div></div>';
+
+  // Get active question
+  const snap = await db.collection('questions').where('active', '==', true).limit(1).get();
+  if (snap.empty) {
+    area.innerHTML = `<div class="no-question"><p>Ingen fråga är aktiv just nu.<br>Ta en öl så länge! 🍻</p><img src="https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davegif1.gif?alt=media" alt="Loading" style="width:200px;height:200px;margin-top:20px;"></div>`;
+    return;
+  }
+
+  const q = { id: snap.docs[0].id, ...snap.docs[0].data() };
+  const graded = !!q.graded;
+
+  // Get my answer
+  const ansDoc = await db.collection('answers').doc(`${q.id}_${cu.id}`).get();
+  const answered = ansDoc.exists;
+  const myAns = answered ? ansDoc.data().answerIndex : undefined;
+
+  // Get all answers for stats
+  const allAnsSnap = await db.collection('answers').where('questionId', '==', q.id).get();
+  const total = allAnsSnap.size;
+  const counts = q.options.map((_, i) => allAnsSnap.docs.filter(d => d.data().answerIndex === i).length);
+
+  
+
+// Result box
+let resultHtml = '';
+if (answered && graded) {
+    const correct = myAns === q.correctIndex;
+    
+    // Om du vill använda en specifik bild för RÄTT och en för FEL:
+    const resultImage = correct 
+        ? 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davebog.JPG?alt=media&token=cf9b7324-e2fd-467f-8d1b-64113caade01' 
+        : 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davefacepalm.jpg?alt=media&token=e1b4f8c7-2ac9-443b-a425-2dddc180ea11';
+
+    resultHtml = `
+      <div class="answer-result ${correct ? 'ok' : 'err'}">
+        ${avHTML(cu, 80, 'result-big-av')}
+        
+        <div class="result-headline">${correct ? '🍻 Rätt svar, SKÅL!' : '😬 Fel svar!'}</div>
+        
+        <img src="${resultImage}" style="width:100%; max-width:200px; border-radius:12px; margin: 15px auto; display:block;">
+        
+        <div class="result-detail">
+          ${correct
+            ? `Snyggt jobbat, <strong>${cu.name}</strong>! Du fick <strong>+${q.points || 1} poäng</strong>.`
+            : `Rätt svar var: <strong>${q.options[q.correctIndex]}</strong>`
+          }
+        </div>
+      </div>`;
+}
+
+// Waiting banner
+let waitingHtml = '';
+if (answered && !graded) {
+    waitingHtml = `
+      <div class="waiting-banner" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div class="waiting-content-top" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+          ${avHTML(cu, 44, 'waiting-av')}
+          <div class="waiting-text" style="margin-top: 12px;">
+            <div class="waiting-title" style="font-weight: bold;">Svar inskickat!</div>
+            <div class="waiting-sub">Hetsa de andra så vi blir klara snart!</div>
+          </div>
+        </div>
+
+        <div class="waiting-gif-container" style="width: 100%; text-align: center; margin-top: 15px;">
+          <img src="https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davegif1.gif?alt=media" 
+               alt="Loading" 
+               style="width: 200px; height: 200px; border-radius: 10px;">
+        </div>
+      </div>`;
+}
+  const imgHtml = q.image ? `<img src="${q.image}" class="question-img" alt="">` : '';
+
+  // Options
+  const letters = 'ABCDEFGH';
+  const optHtml = q.options.map((opt, i) => {
+    let cls = '';
+    if (answered && graded) {
+      if (i === q.correctIndex) cls = 'ok';
+      else if (i === myAns)     cls = 'err';
+    } else if (answered) {
+      if (i === myAns) cls = 'picked';
+    } else if (i === (_sel ?? -1)) cls = 'sel';
+    const pct = (graded && total > 0) ? Math.round(counts[i] / total * 100) : 0;
+    const showBar = graded;
+    return `
+      <button class="opt-btn ${cls}" ${answered ? 'disabled' : ''} onclick="selectOpt(${i},this)">
+        ${showBar ? `<div class="opt-bar" style="width:${pct}%"></div>` : ''}
+        <span class="opt-letter">${letters[i]}</span>
+        <span style="position:relative;z-index:1;flex:1;">${opt}</span>
+        ${showBar ? `<span class="opt-pct">${pct}%</span>` : ''}
+      </button>`;
+  }).join('');
+
+  // Who answered — split into correct / wrong
+  let whoHtml = '';
+  if (graded && total > 0) {
+    const answerMap = {};
+    allAnsSnap.docs.forEach(d => { answerMap[d.data().userId] = d.data().answerIndex; });
+    const usersSnap = await db.collection('users').get();
+    const allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const correctUsers = allUsers.filter(u => answerMap[u.id] !== undefined && answerMap[u.id] === q.correctIndex);
+    const wrongUsers   = allUsers.filter(u => answerMap[u.id] !== undefined && answerMap[u.id] !== q.correctIndex);
+
+    const userRow = (u) => `
+      <div class="result-user-row">
+        ${avHTML(u, 28, '')}
+        <div>
+          <div class="result-user-name">${u.name}</div>
+          <div class="result-user-ans">${q.options[answerMap[u.id]]}</div>
+        </div>
+      </div>`;
+
+    whoHtml = `
+      <div class="who-answered">
+        <div style="font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--text2);margin-bottom:12px;">Resultat</div>
+        <div class="results-grid">
+          <div class="result-group correct-group">
+            <div class="result-group-title">✓ Rätt (${correctUsers.length})</div>
+            ${correctUsers.length ? correctUsers.map(userRow).join('') : '<div style="font-size:0.78rem;color:var(--text2);">Ingen</div>'}
+          </div>
+          <div class="result-group wrong-group">
+            <div class="result-group-title">✗ Fel (${wrongUsers.length})</div>
+            ${wrongUsers.length ? wrongUsers.map(userRow).join('') : '<div style="font-size:0.78rem;color:var(--text2);">Ingen</div>'}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  const ansCountHtml = answered && !graded
+    ? `<div style="text-align:center;font-size:0.76rem;color:var(--text2);margin-top:10px;">${total} person(er) har svarat — väntar på rättning</div>`
+    : '';
+
+  const ansBtn = !answered ? `<button class="btn btn-primary" onclick="doAnswer('${q.id}')" style="margin-top:8px;">Svara →</button>` : '';
+
+  area.innerHTML = `
+    <div class="question-card">
+      ${imgHtml}
+      <div class="question-text">${q.text}</div>
+      ${optHtml}
+      ${waitingHtml}
+      ${resultHtml}
+      ${ansBtn}
+      ${ansCountHtml}
+      ${whoHtml}
+    </div>`;
+
+  _sel = answered ? myAns : undefined;
+}
+
+function selectOpt(i, btn) {
+  document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  _sel = i;
+}
+
+async function doAnswer(questionId) {
+  if (_sel === undefined) { alert('Välj ett alternativ först!'); return; }
+
+  const ansBtn = document.querySelector('#questionArea .btn-primary');
+  if (ansBtn) { ansBtn.disabled = true; ansBtn.textContent = 'Sparar…'; }
+
+  try {
+    // Get question text for history
+    const qDoc = await db.collection('questions').doc(questionId).get();
+    const q = { id: qDoc.id, ...qDoc.data() };
+
+    // Save answer to Firestore
+    await db.collection('answers').doc(`${questionId}_${cu.id}`).set({
+      questionId, userId: cu.id, answerIndex: _sel,
+      answeredAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Add pending history entry to user
+    const histEntry = {
+      questionId, question: q.text,
+      answer: q.options[_sel],
+      pending: true, correct: null, points: 0,
+      date: new Date().toLocaleDateString('sv-SE')
+    };
+    const newHistory = [...(cu.history || []).filter(h => h.questionId !== questionId), histEntry];
+    await db.collection('users').doc(cu.id).update({ history: newHistory });
+    cu = { ...cu, history: newHistory };
+
+    renderApp();
+    renderQuestion();
+  } catch (e) {
+    showToast('❌ Kunde inte spara svaret: ' + e.message, true);
+    if (ansBtn) { ansBtn.disabled = false; ansBtn.textContent = 'Svara →'; }
+  }
+}
+
+// ═══════════════════════════════════════════════
+// SUBMIT QUESTION (TAB 3)
+// ═══════════════════════════════════════════════
+function renderSubOpts() {
+  const l = document.getElementById('subOptsList');
+  if (!l.children.length) { addSubOpt(); addSubOpt(); }
+}
+
+function addSubOpt() {
+  const l = document.getElementById('subOptsList');
+  const row = document.createElement('div');
+  row.className = 'opt-input-row';
+  row.innerHTML = `
+    <input class="input-field" type="text" placeholder="Alternativ ${l.children.length + 1}...">
+    <button class="rm-opt-btn" onclick="rmOpt(this)">✕</button>`;
+  l.appendChild(row);
+}
+
+function rmOpt(btn) {
+  const l = document.getElementById('subOptsList');
+  if (l.children.length <= 2) return;
+  btn.parentElement.remove();
+}
+
+async function submitQ() {
+  const text = document.getElementById('subQ').value.trim();
+  const rows = document.querySelectorAll('#subOptsList .opt-input-row input');
+  const opts = Array.from(rows).map(i => i.value.trim()).filter(Boolean);
+  const ci = document.getElementById('subCorrect').value;
+  if (!text) { alert('Skriv en fråga!'); return; }
+  if (opts.length < 2) { alert('Lägg till minst 2 alternativ!'); return; }
+
+  try {
+    let imageUrl = null;
+    if (subImgFile) {
+      const blob = await compressFile(subImgFile, 800);
+      imageUrl = await uploadToStorage(`question-images/${Date.now()}.jpg`, blob);
+    }
+
+    await db.collection('submitted').add({
+      text, options: opts,
+      correctIndex: ci ? parseInt(ci) - 1 : null,
+      image: imageUrl,
+      submittedBy: cu.name, submittedById: cu.id,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'pending'
+    });
+
+    document.getElementById('subQ').value = '';
+    document.getElementById('subCorrect').value = '';
+    document.getElementById('subOptsList').innerHTML = '';
+    subImgFile = null;
+    document.getElementById('subImgPrev').style.display = 'none';
+    document.getElementById('subImgInput').value = '';
+    addSubOpt(); addSubOpt();
+
+    const ok = document.getElementById('submitOk');
+    ok.style.display = 'block';
+    setTimeout(() => ok.style.display = 'none', 3000);
+  } catch (e) {
+    showToast('❌ Fel: ' + e.message, true);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// BINGO
+// ═══════════════════════════════════════════════
+const BINGO_ITEMS = [
+  "Säger 'Vi hörs imorrn'",
+  "DU köper en öl till David",
+  "Är orolig för vad Sara ska säga",
+  "Nekar till att han är full",
+  "Tappar bort något",
+  "Sjunger med i en låt",
+  "Klagar på musiken",
+  "Beställer fel drink",
+  "Tar någons öl",
+  "Säger 'det var bättre förr'",
+  "Hittar en ny bästis",
+  "Tar selfie med en främling",
+  "Ramlar",
+  "Säger att han måste ta det lugnt",
+  "Ger ett omotiverat tal",
+  "Drar en olämplig referens",
+  "Försvinner i 5+ min",
+  "DU sjunger karaoke med David",
+  "Blir filosof",
+  "Börjar prata politik",
+  "DU badar under dagen",
+  "DU bjuder någon utanför sällskapet på öl",
+  "Säger 'Den är fan bra, asså'",
+  "Säger 'jag älskar er'",
+  "Dricker shots (räcker med 1)",
+  "Somnar/spyr",
+  "Drar en ordvits innan toan",
+  "Säger 'Röka cigarr'",
+];
+
+let bingoCard = [];      // 25 items (index 12 = FREE)
+let bingoMarked = [];    // bool[25]
+let unsubBingo = null;
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generateCard() {
+  return shuffleArray(BINGO_ITEMS).slice(0, 25);
+}
+
+function getBingoLines(marked) {
+  const lines = [];
+  // Rows
+  for (let r = 0; r < 5; r++) {
+    const row = [r*5, r*5+1, r*5+2, r*5+3, r*5+4];
+    if (row.every(i => marked[i])) lines.push(row);
+  }
+  // Cols
+  for (let c = 0; c < 5; c++) {
+    const col = [c, c+5, c+10, c+15, c+20];
+    if (col.every(i => marked[i])) lines.push(col);
+  }
+  return lines;
+}
+
+async function saveBingoState() {
+  if (!cu) return;
+  await db.collection('bingo').doc(cu.id).set({
+    userId: cu.id, userName: cu.name, userPhoto: cu.photo || null,
+    card: bingoCard, marked: bingoMarked,
+    hasBingo: getBingoLines(bingoMarked).length > 0,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function loadBingoState() {
+  if (!cu) return;
+  const doc = await db.collection('bingo').doc(cu.id).get();
+  if (doc.exists) {
+    const d = doc.data();
+    bingoCard = d.card;
+    bingoMarked = d.marked;
+  } else {
+    bingoCard = generateCard();
+    bingoMarked = Array(25).fill(false);
+    await saveBingoState();
+  }
+}
+
+async function toggleBingoCell(i) {
+  bingoMarked[i] = !bingoMarked[i];
+  renderBingoGrid();
+  await saveBingoState();
+
+  const lines = getBingoLines(bingoMarked);
+  if (lines.length > 0 && bingoMarked[i]) {
+    showToast('🎉 BINGO! Grattis ' + cu.name + '!');
+  }
+}
+
+function renderBingoGrid() {
+  const grid = document.getElementById('bingoGrid');
+  if (!grid) return;
+  const lines = getBingoLines(bingoMarked);
+  const lineCells = new Set(lines.flat());
+
+  grid.innerHTML = bingoCard.map((item, i) => {
+    const isMarked = bingoMarked[i];
+    const isLine = lineCells.has(i);
+    let cls = 'bingo-cell';
+    if (isLine) cls += ' marked bingo-line';
+    else if (isMarked) cls += ' marked';
+    const daveImg = isMarked ? `<img class="bingo-dave" src="https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Dave1.png?alt=media" alt="">` : '';
+    const label = isMarked ? `<span class="bingo-label">${item}</span>` : item;
+    return `<div class="${cls}" onclick="toggleBingoCell(${i})">${daveImg}${label}</div>`;
+  }).join('');
+}
+
+const _bingoDismissed = new Set(); // userIds whose bingo banner has been dismissed
+
+function handleBingoBannerClick() {
+  const winners = window._bingoWinners || [];
+  if (winners.length) openBingoInspect(winners[0]);
+}
+
+function dismissBingoBanner() {
+  (window._bingoWinners || []).forEach(w => _bingoDismissed.add(w.userId));
+  const banner = document.getElementById('bingoBanner');
+  if (banner) banner.classList.remove('visible');
+}
+
+function startBingoWinnersListener() {
+  if (unsubBingo) unsubBingo();
+  unsubBingo = db.collection('bingo').where('hasBingo', '==', true)
+    .onSnapshot(snap => {
+      const winners = snap.docs.map(d => d.data());
+      window._bingoWinners = winners;
+
+      // Only show banner for winners not yet dismissed
+      const banner = document.getElementById('bingoBanner');
+      if (banner) {
+        const newWinners = winners.filter(w => !_bingoDismissed.has(w.userId));
+        if (newWinners.length) {
+          const names = newWinners.map(w => w.userName).join(', ');
+          banner.textContent = '\uD83C\uDF89 BINGO! ' + names + ' har bingo! \u2014 Tryck f\u00F6r att se brickan';
+          banner.classList.add('visible');
+        } else {
+          banner.classList.remove('visible');
+        }
+      }
+
+      const el = document.getElementById('bingoWinners');
+      if (!el) return;
+      if (!winners.length) { el.innerHTML = ''; return; }
+      el.innerHTML = `
+        <div class="bingo-winner-banner">
+          <div style="font-size:2rem;margin-bottom:6px;">🎉</div>
+          <div class="bingo-winner-name">BINGO!</div>
+          <div class="bingo-winners-list">
+            ${winners.map((w, idx) => `
+              <div class="bingo-winner-item" onclick="openBingoInspect(window._bingoWinners[${idx}])" style="cursor:pointer;">
+                ${avHTML({name: w.userName, photo: w.userPhoto}, 32, '')}
+                <span style="font-weight:600;">${w.userName}</span>
+                <span style="margin-left:auto;font-size:0.75rem;color:var(--accent3);">👁 Visa bricka</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    });
+}
+
+function openBingoInspect(winner) {
+  dismissBingoBanner(); // close banner and mark as seen
+  document.getElementById('bingoInspectName').textContent = winner.userName;
+  const avEl = document.getElementById('bingoInspectAv');
+  avEl.innerHTML = avHTML({name: winner.userName, photo: winner.userPhoto}, 44, '');
+
+  const lines = getBingoLines(winner.marked);
+  const lineCells = new Set(lines.flat());
+
+  document.getElementById('bingoInspectGrid').innerHTML = winner.card.map((item, i) => {
+    const isMarked = winner.marked[i];
+    const isLine = lineCells.has(i);
+    let cls = 'bingo-inspect-cell';
+    if (isLine) cls += ' marked bingo-line';
+    else if (isMarked) cls += ' marked';
+    const daveImg = isMarked ? `<img class="bingo-dave" src="https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Dave1.png?alt=media" alt="">` : '';
+    const label = isMarked ? `<span class="bingo-label">${item}</span>` : item;
+    return `<div class="${cls}">${daveImg}${label}</div>`;
+  }).join('');
+
+  openModal('bingoInspectModal');
+}
+
+async function renderBingo() {
+  const grid = document.getElementById('bingoGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);">Laddar...</div>';
+  await loadBingoState();
+  renderBingoGrid();
+  startBingoWinnersListener();
+}
+
+// ═══════════════════════════════════════════════
+// BETTING
+// ═══════════════════════════════════════════════
+const LETTERS = 'ABCDEFGH';
+
+function toggleBetCreate() {
+  const form = document.getElementById('betCreateForm');
+  const arrow = document.getElementById('betCreateArrow');
+  const isOpen = form.classList.toggle('open');
+  arrow.classList.toggle('open', isOpen);
+  if (isOpen && !document.getElementById('betOptionsList').children.length) {
+    addBetOption(); addBetOption();
+    setBetTarget('all');
+    populateBetUserChips();
+  }
+}
+
+function setBetTarget(mode) {
+  const allBtn = document.getElementById('betTargetAll');
+  const specificBtn = document.getElementById('betTargetSpecific');
+  const picker = document.getElementById('betUserPicker');
+  if (mode === 'all') {
+    allBtn.classList.add('active');
+    specificBtn.classList.remove('active');
+    picker.style.display = 'none';
+  } else {
+    specificBtn.classList.add('active');
+    allBtn.classList.remove('active');
+    picker.style.display = 'block';
+    populateBetUserChips();
+  }
+}
+
+function populateBetUserChips() {
+  const container = document.getElementById('betUserChips');
+  if (!container) return;
+  const others = cachedUsers.filter(u => u.id !== cu.id);
+  container.innerHTML = others.map(u => `
+    <div class="bet-user-chip" id="buc_${u.id}" onclick="toggleBetUserChip('${u.id}')">
+      ${avHTML(u, 22, '')}
+      <span>${u.name}</span>
+      <span class="chip-check">✓</span>
+    </div>`).join('');
+}
+
+function addBetOption() {
+  const list = document.getElementById('betOptionsList');
+  const idx = list.children.length;
+  if (idx >= 8) return;
+  const row = document.createElement('div');
+  row.className = 'bet-opt-row';
+  row.innerHTML = `
+    <div class="bet-opt-letter">${LETTERS[idx]}</div>
+    <input class="input-field" type="text" placeholder="Alternativ ${idx + 1}…">
+    <button class="rm-opt-btn" onclick="removeBetOption(this)">✕</button>`;
+  list.appendChild(row);
+}
+
+function removeBetOption(btn) {
+  const list = document.getElementById('betOptionsList');
+  if (list.children.length <= 2) return;
+  btn.parentElement.remove();
+  // Re-label letters
+  Array.from(list.children).forEach((row, i) => {
+    row.querySelector('.bet-opt-letter').textContent = LETTERS[i];
+    row.querySelector('input').placeholder = `Alternativ ${i + 1}…`;
+  });
+}
+
+function toggleBetUserChip(uid) {
+  const chip = document.getElementById('buc_' + uid);
+  if (chip) chip.classList.toggle('selected');
+}
+
+function getSelectedBetTargets() {
+  const isSpecific = document.getElementById('betTargetSpecific')?.classList.contains('active');
+  if (!isSpecific) return []; // empty = open to all
+  const selected = Array.from(document.querySelectorAll('#betUserChips .bet-user-chip.selected'))
+    .map(el => el.id.replace('buc_', ''));
+  return selected;
+}
+
+async function createBet() {
+  const question = document.getElementById('betQuestion').value.trim();
+  const rows = document.querySelectorAll('#betOptionsList input[type="text"]');
+  const options = Array.from(rows).map(r => r.value.trim()).filter(Boolean);
+  
+  if (!question) { showToast('❌ Skriv ett påstående!', true); return; }
+  if (options.length < 2) { showToast('❌ Minst 2 alternativ!', true); return; }
+
+  // Hämta valda användare (returnerar [] om "Alla" är valt)
+  const targetUserIds = getSelectedBetTargets() || []; 
+  const isSpecific = document.getElementById('betTargetSpecific')?.classList.contains('active');
+
+  if (isSpecific && targetUserIds.length === 0) {
+    showToast('❌ Välj minst en person att utmana!', true); return;
+  }
+
+  try {
+    const betData = {
+      question, 
+      options,
+      createdBy: cu.name, 
+      createdById: cu.id,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'open', 
+      winningIndex: null,
+      targetUserIds: targetUserIds // Tvinga att det sparas som en array
+    };
+
+    await db.collection('bets').add(betData);
+
+  
+    // NOTIS-LOGIK: Skicka push till de som är utmanade 
+    const notifText = isSpecific 
+      ? `${cu.name} har utmanat dig i ett privat bet!` 
+      : `${cu.name} skapade ett nytt bet: ${question}`;
+    
+    // Anropa din nya sendNotification-funktion (den med fetch)
+    sendNotification('🎰 Nytt Bet!', notifText);
+
+    // Återställ formuläret
+    document.getElementById('betQuestion').value = '';
+    document.getElementById('betOptionsList').innerHTML = '';
+    setBetTarget('all');
+    toggleBetCreate(); 
+    showToast('🎰 Bet skapat!');
+    renderBets();
+  } catch (e) {
+    console.error(e);
+    showToast('❌ Fel: ' + e.message, true);
+  }
+}
+
+async function placeBet(betId, optionIndex) {
+  const entryId = `${betId}_${cu.id}`;
+  try {
+    await db.collection('betEntries').doc(entryId).set({
+      betId, userId: cu.id, userName: cu.name, userPhoto: cu.photo || null,
+      optionIndex,
+      placedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('✅ Bet lagt!');
+    renderBets();
+  } catch (e) {
+    showToast('❌ Kunde inte lägga bet: ' + e.message, true);
+  }
+}
+
+async function renderBets() {
+  const listEl = document.getElementById('betsList');
+  const settledEl = document.getElementById('settledBetsList');
+  listEl.innerHTML = '<div class="empty-state" style="font-size:0.82rem;">Laddar…</div>';
+
+  // Load all bets + my entries
+  const [betsSnap, myEntriesSnap] = await Promise.all([
+    db.collection('bets').orderBy('createdAt', 'desc').get(),
+    db.collection('betEntries').where('userId', '==', cu.id).get()
+  ]);
+
+  const myEntries = {}; // betId → optionIndex
+  myEntriesSnap.docs.forEach(d => { myEntries[d.data().betId] = d.data().optionIndex; });
+
+  if (betsSnap.empty) {
+    listEl.innerHTML = '<div class="empty-state" style="font-size:0.82rem;">Inga aktiva bets just nu.</div>';
+    settledEl.innerHTML = '<div class="empty-state" style="font-size:0.82rem;">Inga avgjorda bets ännu.</div>';
+    return;
+  }
+
+// --- FILTRERING AV BETS ---
+
+const visibleBets = betsSnap.docs.filter(d => {
+  const bet = d.data();
+  const targets = bet.targetUserIds || [];
+
+  if (targets.length === 0) {
+    return true; // Visa för alla
+  } else {
+    // Privat bet - strikt kontroll
+    return bet.createdById === cu.id || targets.includes(cu.id);
+  }
+});
+
+// Dela upp de synliga betsen i Öppna och Avgjorda
+const openBets = visibleBets.filter(d => d.data().status === 'open');
+const settledBets = visibleBets.filter(d => d.data().status === 'settled');
+
+// --------------------------
+
+  // Load all entries for these bets
+  const allEntriesSnap = await db.collection('betEntries').get();
+  const entriesByBet = {};
+  allEntriesSnap.docs.forEach(d => {
+    const e = d.data();
+    if (!entriesByBet[e.betId]) entriesByBet[e.betId] = [];
+    entriesByBet[e.betId].push(e);
+  });
+
+  function renderBetCard(doc) {
+    const bet = { id: doc.id, ...doc.data() };
+    const entries = entriesByBet[bet.id] || [];
+    const myPick = myEntries[bet.id] ?? null;
+    const isOpen = bet.status === 'open';
+    const isSettled = bet.status === 'settled';
+    const totalVotes = entries.length;
+
+    const optionsHtml = bet.options.map((opt, i) => {
+      const voters = entries.filter(e => e.optionIndex === i);
+      const count = voters.length;
+      const pct = totalVotes > 0 ? Math.round(count / totalVotes * 100) : 0;
+      const isChosen = myPick === i;
+      const isWinner = isSettled && bet.winningIndex === i;
+      const isLoser  = isSettled && bet.winningIndex !== i;
+
+      let btnCls = 'bet-opt-btn';
+      if (isChosen) btnCls += ' chosen';
+      if (isWinner) btnCls += ' winner';
+      if (isLoser)  btnCls += ' loser';
+      const barCls = isWinner ? 'bet-opt-bar winner-bar' : 'bet-opt-bar';
+
+      const voterChips = voters.map(v =>
+        `<span class="bet-voter-chip">${avHTML({name:v.userName,photo:v.userPhoto},16,'')} ${v.userName}</span>`
+      ).join('');
+
+      const disabled = (!isOpen || myPick !== null) ? 'disabled' : '';
+      const onclick = (!isOpen || myPick !== null) ? '' : `onclick="placeBet('${bet.id}',${i})"`;
+
+      return `
+        <button class="${btnCls}" ${disabled} ${onclick}>
+          <div class="${barCls}" style="width:${pct}%"></div>
+          <span class="bet-opt-label">${LETTERS[i]}</span>
+          <span class="bet-opt-text">${opt}${isChosen ? ' 👈' : ''}${isWinner ? ' ✅' : ''}</span>
+          <span class="bet-opt-count">${count} röst${count !== 1 ? 'er' : ''} · ${pct}%</span>
+        </button>
+        ${(voters.length && (myPick !== null || isSettled)) ? `<div class="bet-voters">${voterChips}</div>` : ''}`;
+    }).join('');
+
+    let resultBanner = '';
+    if (isSettled && myPick !== null) {
+      const won = myPick === bet.winningIndex;
+      resultBanner = `<div class="bet-result-banner ${won ? 'win' : 'lose'}">${won ? '🎉 Du hade rätt!' : '😬 Du hade fel'}</div>`;
+    } else if (isSettled && myPick === null) {
+      resultBanner = `<div class="bet-result-banner no-pick">Du deltog inte i detta bet</div>`;
+    }
+
+    const targets = bet.targetUserIds || [];
+    const isTargeted = targets.length > 0;
+    const targetNames = isTargeted
+      ? cachedUsers.filter(u => targets.includes(u.id)).map(u => u.name)
+      : [];
+
+    const cardCls = isSettled
+      ? (myPick !== null && myPick === bet.winningIndex ? 'bet-card settled' : 'bet-card settled-wrong')
+      : 'bet-card';
+
+    return `
+      <div class="${cardCls}">
+        <div class="bet-question">${bet.question}</div>
+        <div class="bet-meta">
+          <span class="bet-status-badge ${isOpen ? 'bet-status-open' : 'bet-status-settled'}">${isOpen ? '🟢 Öppen' : '🏁 Avgjord'}</span>
+          ${isTargeted ? `<span class="bet-target-badge">🎯 Privat bet</span>` : ''}
+          Skapad av ${bet.createdBy} · ${totalVotes} deltagare
+          ${isTargeted && targetNames.length ? `<span style="font-size:0.7rem;color:var(--text2);">· Utmanar: ${targetNames.join(', ')}</span>` : ''}
+          ${myPick !== null && isOpen ? '<span style="color:var(--accent3);font-weight:600;">· Du har lagt bet</span>' : ''}
+        </div>
+        <div class="bet-options">${optionsHtml}</div>
+        ${resultBanner}
+      </div>`;
+  }
+
+  listEl.innerHTML = openBets.length
+    ? openBets.map(renderBetCard).join('')
+    : '<div class="empty-state" style="font-size:0.82rem;">Inga aktiva bets just nu.</div>';
+
+  settledEl.innerHTML = settledBets.length
+    ? settledBets.map(renderBetCard).join('')
+    : '<div class="empty-state" style="font-size:0.82rem;">Inga avgjorda bets ännu.</div>';
+
+  // ── Betting Statistics ──────────────────────────────────────────
+  renderBettingStats(settledBets, allEntriesSnap, myEntries);
+}
+
+function renderBettingStats(settledBets, allEntriesSnap, myEntries) {
+  const statsEl = document.getElementById('bettingStats');
+  if (!statsEl) return;
+
+  // Only show if there are settled bets
+  if (!settledBets.length) { statsEl.style.display = 'none'; return; }
+  statsEl.style.display = 'block';
+
+  // My personal stats
+  let myWins = 0, myLosses = 0, myParticipated = 0;
+  settledBets.forEach(doc => {
+    const bet = { id: doc.id, ...doc.data() };
+    const myPick = myEntries[bet.id] ?? null;
+    if (myPick === null) return;
+    myParticipated++;
+    if (myPick === bet.winningIndex) myWins++; else myLosses++;
+  });
+  const myPct = myParticipated > 0 ? Math.round(myWins / myParticipated * 100) : 0;
+
+  document.getElementById('betStatsGrid').innerHTML = `
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+      <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--accent3);">${myWins}</div>
+      <div style="font-size:0.72rem;color:var(--text2);margin-top:2px;">Rätt bet</div>
+    </div>
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+      <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--wrong);">${myLosses}</div>
+      <div style="font-size:0.72rem;color:var(--text2);margin-top:2px;">Fel bet</div>
+    </div>
+    <div style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;">
+      <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--accent);">${myPct}%</div>
+      <div style="font-size:0.72rem;color:var(--text2);margin-top:2px;">Träffsäkerhet</div>
+    </div>`;
+
+  // Leaderboard: per user, count wins across settled bets
+  const userStats = {}; // userId → { name, photo, wins, total }
+  allEntriesSnap.docs.forEach(d => {
+    const e = d.data();
+    if (!e.userId) return;
+    if (!userStats[e.userId]) userStats[e.userId] = { name: e.userName, photo: e.userPhoto || null, wins: 0, total: 0 };
+  });
+  settledBets.forEach(doc => {
+    const bet = { id: doc.id, ...doc.data() };
+    const entries = allEntriesSnap.docs.map(d => d.data()).filter(e => e.betId === bet.id);
+    entries.forEach(e => {
+      if (!userStats[e.userId]) userStats[e.userId] = { name: e.userName, photo: e.userPhoto || null, wins: 0, total: 0 };
+      userStats[e.userId].total++;
+      if (e.optionIndex === bet.winningIndex) userStats[e.userId].wins++;
+    });
+  });
+
+  const sorted = Object.entries(userStats)
+    .filter(([, s]) => s.total > 0)
+    .sort(([, a], [, b]) => b.wins - a.wins || (b.wins/b.total) - (a.wins/a.total));
+
+  if (!sorted.length) { document.getElementById('betLeaderboard').innerHTML = ''; return; }
+
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('betLeaderboard').innerHTML = `
+    <div style="font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text2);margin-bottom:10px;">🏆 Bäst på att betta</div>
+    ${sorted.map(([uid, s], i) => {
+      const pct = Math.round(s.wins / s.total * 100);
+      const isMe = uid === cu.id;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);${isMe ? 'background:rgba(124,92,252,0.04);border-radius:8px;padding:8px;margin:0 -8px;' : ''}">
+          <span style="font-size:1.1rem;width:24px;text-align:center;">${medals[i] || (i+1)+'.'}</span>
+          ${avHTML({name:s.name,photo:s.photo},30,'')}
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;font-weight:600;">${s.name}${isMe ? ' <span style="font-size:0.65rem;background:rgba(124,92,252,0.18);color:var(--accent);padding:1px 6px;border-radius:100px;font-family:\'Syne\',sans-serif;font-weight:700;">DU</span>' : ''}</div>
+            <div style="font-size:0.72rem;color:var(--text2);">${s.wins}/${s.total} rätt</div>
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;color:${pct>=60?'var(--correct)':pct>=40?'var(--accent)':'var(--text2)'};">${pct}%</div>
+        </div>`;
+    }).join('')}`;
+}
+
+// ═══════════════════════════════════════════════
+// FYLLEMÄTAREN
+// ═══════════════════════════════════════════════
+const FYLLE_LEVELS = [
+  { value: 0, emoji: '😇', label: 'Nykter som en korgosse' },
+  { value: 1, emoji: '🙂', label: 'Börjar bli lite glad sådär' },
+  { value: 2, emoji: '😄', label: 'Fundera på en vatten' },
+  { value: 3, emoji: '🥴', label: 'Ganska full' },
+  { value: 4, emoji: '🤪', label: 'Nu är David full på riktigt' },
+  { value: 5, emoji: '💀', label: 'Vi hörs imorrn...' },
+];
+
+const FYLLE_VOTE_EXPIRY_MS  = 60 * 60 * 1000; // 60 min — votes older than this are excluded from avg
+const FYLLE_COOLDOWN_MS     = 10 * 1000;       // 10 s between votes
+const FYLLE_CHART_WINDOW_MS = 4 * 60 * 60 * 1000; // 4 h visible window
+const FYLLE_PX_PER_MIN      = 3;              // pixels per minute in scrollable chart
+
+let unsubFylle = null;
+let fylleHistory = [];        // [{time, avg}]
+let fylleCurrentVotes = {};   // userId → {value, userName, userPhoto, timestamp}
+let fylleMyVote = null;
+let fylleLastVoteTime = 0;    // ms epoch of my last cast
+let fylleCooldownInterval = null;
+
+function initFyllemätaren() {
+  if (unsubFylle) return;
+  unsubFylle = db.collection('fylle').doc('votes')
+    .onSnapshot(snap => {
+      if (snap.exists) {
+        fylleCurrentVotes = snap.data().votes || {};
+        fylleHistory      = snap.data().history || [];
+      } else {
+        fylleCurrentVotes = {};
+        fylleHistory = [];
+      }
+      const myEntry = fylleCurrentVotes[cu.id];
+      if (myEntry !== undefined) {
+        fylleMyVote = myEntry.value;
+        if (myEntry.timestamp && !fylleLastVoteTime) {
+          // Restore cooldown from persisted timestamp on first load
+          fylleLastVoteTime = myEntry.timestamp;
+          startFylleCooldown();
+        }
+      }
+      renderFylle();
+    });
+}
+
+function teardownFyllemätaren() {
+  if (unsubFylle) { unsubFylle(); unsubFylle = null; }
+  if (fylleCooldownInterval) { clearInterval(fylleCooldownInterval); fylleCooldownInterval = null; }
+  if (fylleNotifTimeout) { clearTimeout(fylleNotifTimeout); fylleNotifTimeout = null; }
+}
+
+// Returns only votes cast within last 60 minutes
+function fylleActiveVotes() {
+  const cutoff = Date.now() - FYLLE_VOTE_EXPIRY_MS;
+  const active = {};
+  Object.entries(fylleCurrentVotes).forEach(([uid, v]) => {
+    if ((v.timestamp || 0) >= cutoff) active[uid] = v;
+  });
+  return active;
+}
+
+function fylleAvg(votes) {
+  const vals = Object.values(votes).map(v => v.value);
+  if (!vals.length) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+function startFylleCooldown() {
+  if (fylleCooldownInterval) clearInterval(fylleCooldownInterval);
+  updateFylleCooldownUI();
+  fylleCooldownInterval = setInterval(() => {
+    updateFylleCooldownUI();
+    const remaining = FYLLE_COOLDOWN_MS - (Date.now() - fylleLastVoteTime);
+    if (remaining <= 0) {
+      clearInterval(fylleCooldownInterval);
+      fylleCooldownInterval = null;
+      updateFylleCooldownUI();
+    }
+  }, 250);
+}
+
+function updateFylleCooldownUI() {
+  const remaining = FYLLE_COOLDOWN_MS - (Date.now() - fylleLastVoteTime);
+  const cooldownBox = document.getElementById('fylleCooldownBox');
+  const levelsEl    = document.getElementById('fylleLevels');
+  if (!cooldownBox || !levelsEl) return;
+  if (remaining > 0) {
+    cooldownBox.style.display = '';
+    document.getElementById('fylleCooldownTimer').textContent =
+      Math.ceil(remaining / 1000) + 's';
+    levelsEl.style.display = 'none';
+  } else {
+    cooldownBox.style.display = 'none';
+    levelsEl.style.display = '';
+  }
+}
+
+function updateFylleEmojiBlinkClass(avg) {
+  const emojiEl = document.getElementById('fylle-emoji');
+  if (!emojiEl) return;
+  emojiEl.classList.remove('blink-1', 'blink-2', 'blink-3');
+  if (avg === null || avg <= 3) return;
+  // 3–4 → blink-1, 4–4.5 → blink-2, 4.5–5 → blink-3
+  if (avg < 4)   emojiEl.classList.add('blink-1');
+  else if (avg < 4.5) emojiEl.classList.add('blink-2');
+  else           emojiEl.classList.add('blink-3');
+}
+
+function renderFylle() {
+  const activeVotes = fylleActiveVotes();
+  const avg = fylleAvg(activeVotes);
+  const voterCount = Object.keys(activeVotes).length;
+
+  // Hero
+  const heroEl = document.getElementById('fylleHero');
+  if (avg !== null) {
+    const lvl = FYLLE_LEVELS[Math.round(avg)];
+    document.getElementById('fylle-emoji').textContent = lvl.emoji;
+    document.getElementById('fylle-avg').textContent = avg.toFixed(1);
+    document.getElementById('fylle-label').textContent = lvl.label;
+    document.getElementById('fylle-voter-count').textContent =
+      voterCount + (voterCount === 1 ? ' aktiv röst' : ' aktiva röster');
+    if (heroEl) {
+      heroEl.classList.add('fylle-pulse');
+      setTimeout(() => heroEl && heroEl.classList.remove('fylle-pulse'), 500);
+    }
+    updateFylleEmojiBlinkClass(avg);
+  } else {
+    document.getElementById('fylle-emoji').textContent = '🤔';
+    document.getElementById('fylle-avg').textContent = '–';
+    document.getElementById('fylle-label').textContent = 'Inga röster ännu';
+    document.getElementById('fylle-voter-count').textContent = '';
+    updateFylleEmojiBlinkClass(null);
+  }
+
+  // Vote buttons / cooldown
+  const totalVoters = voterCount;
+  const countByLevel = Array(6).fill(0);
+  Object.values(activeVotes).forEach(v => { if (v.value >= 0 && v.value <= 5) countByLevel[v.value]++; });
+  const levelsEl = document.getElementById('fylleLevels');
+  if (levelsEl) {
+    document.getElementById('fylle-vote-title').textContent =
+      fylleMyVote !== null ? '⚡ Uppdatera din röst' : '🗳️ Din bedömning';
+    levelsEl.innerHTML = FYLLE_LEVELS.map(l => {
+      const cnt = countByLevel[l.value];
+      const pct = totalVoters > 0 ? Math.round(cnt / totalVoters * 100) : 0;
+      const isActive = fylleMyVote === l.value;
+      return `
+        <button class="fylle-level-btn${isActive ? ' active' : ''}" onclick="castFylleVote(${l.value})">
+          <div class="fylle-level-bar" style="width:${pct}%"></div>
+          <span class="fylle-level-btn-emoji">${l.emoji}</span>
+          <span class="fylle-level-btn-text">${l.label}</span>
+          ${totalVoters > 0 ? `<span class="fylle-level-btn-votes">${cnt} · ${pct}%</span>` : ''}
+        </button>`;
+    }).join('');
+    updateFylleCooldownUI();
+  }
+
+  // Voters chips (only active/recent)
+  const votersCard = document.getElementById('fylleVotersCard');
+  const votersList = document.getElementById('fylleVotersList');
+  if (voterCount > 0 && votersList && votersCard) {
+    votersCard.style.display = '';
+    votersList.innerHTML = Object.values(activeVotes).map(v => {
+      const lvl = FYLLE_LEVELS[v.value] || FYLLE_LEVELS[0];
+      return `<span class="fylle-voter-chip">
+        ${avHTML({name: v.userName, photo: v.userPhoto || null}, 22, 'fylle-chip-av')}
+        <span>${lvl.emoji} ${v.userName}</span>
+      </span>`;
+    }).join('');
+  } else if (votersCard) {
+    votersCard.style.display = 'none';
+  }
+
+  // Chart
+  drawFylleChart();
+}
+
+async function castFylleVote(value) {
+  if (!cu) return;
+  // Cooldown check
+  if (Date.now() - fylleLastVoteTime < FYLLE_COOLDOWN_MS) return;
+  fylleLastVoteTime = Date.now();
+  fylleMyVote = value;
+
+  // Optimistic update with timestamp
+  fylleCurrentVotes[cu.id] = {
+    value,
+    userName: cu.name,
+    userPhoto: cu.photo || null,
+    timestamp: fylleLastVoteTime
+  };
+  renderFylle();
+  startFylleCooldown();
+
+  // Compute new avg from active votes and push to history
+  const activeVotes = fylleActiveVotes();
+  const avg = fylleAvg(activeVotes);
+  const now = Date.now();
+  let hist = [...fylleHistory, { time: now, avg }];
+  if (hist.length > 500) hist = hist.slice(-500);
+  fylleHistory = hist;
+
+  try {
+    await db.collection('fylle').doc('votes').set({
+      votes: fylleCurrentVotes,
+      history: hist,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(e) {
+    showToast('Kunde inte spara röst 😢', true);
+  }
+}
+
+function drawFylleChart() {
+  const wrapper = document.getElementById('fylleChartWrapper');
+  const canvas  = document.getElementById('fylleCanvas');
+  if (!canvas || !wrapper) return;
+  const ctx = canvas.getContext('2d');
+
+  const hist = fylleHistory.filter(h => h.avg !== null && h.avg !== undefined);
+  const timeLabelsEl = document.getElementById('fylleTimeLabels');
+  const pad = { top: 18, right: 28, bottom: 26, left: 36 };
+
+  if (hist.length < 1) {
+    // Minimal canvas
+    canvas.width  = wrapper.clientWidth || 340;
+    canvas.height = 160;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(136,136,170,0.3)';
+    ctx.font = '13px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Ingen historik ännu…', canvas.width / 2, 80);
+    if (timeLabelsEl) timeLabelsEl.innerHTML = '';
+    return;
+  }
+
+  const now    = Date.now();
+  const winEnd = now;
+  // Chart covers max 4 hours; if history spans more, canvas is wider (scrollable)
+  const firstTime = hist[0].time;
+  const spanMs    = winEnd - firstTime;
+  const FOUR_H    = FYLLE_CHART_WINDOW_MS;
+
+  // How wide is the canvas?
+  const containerW  = wrapper.clientWidth || 340;
+  const minChartW   = containerW;
+  // If span > 4h, scale proportionally so 4h = containerW
+  const pxPerMs     = minChartW / Math.min(spanMs, FOUR_H);
+  const totalPxWide = Math.max(minChartW, Math.round(spanMs * pxPerMs));
+
+  const H = 160;
+  canvas.width  = totalPxWide;
+  canvas.height = H;
+  ctx.clearRect(0, 0, totalPxWide, H);
+
+  const cW = totalPxWide - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+
+  // Map a timestamp → x pixel
+  const tToX = t => pad.left + ((t - firstTime) / (winEnd - firstTime)) * cW;
+
+  // Grid lines – horizontal
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + cH - (i / 5) * cH;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(42,42,61,0.8)';
+    ctx.lineWidth = 1;
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + cW, y);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(136,136,170,0.5)';
+    ctx.font = '9px Syne, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(i, pad.left - 5, y + 3);
+  }
+
+  // Grid lines – vertical every 30 min
+  const THIRTY_MIN = 30 * 60 * 1000;
+  const firstGrid  = Math.ceil(firstTime / THIRTY_MIN) * THIRTY_MIN;
+  for (let t = firstGrid; t <= winEnd; t += THIRTY_MIN) {
+    const x = tToX(t);
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(42,42,61,0.5)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.moveTo(x, pad.top);
+    ctx.lineTo(x, pad.top + cH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Time label
+    const lbl = new Date(t).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    ctx.fillStyle = 'rgba(136,136,170,0.45)';
+    ctx.font = '8px Syne, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, x, pad.top + cH + 14);
+  }
+
+  // Emoji markers on y-axis right
+  FYLLE_LEVELS.forEach(l => {
+    const y = pad.top + cH - (l.value / 5) * cH;
+    ctx.font = '11px serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(l.emoji, totalPxWide - 24, y + 4);
+  });
+
+  const points = hist.map(h => ({
+    x: tToX(h.time),
+    y: pad.top + cH - (Math.min(5, Math.max(0, h.avg)) / 5) * cH
+  }));
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+  grad.addColorStop(0, 'rgba(252,92,124,0.25)');
+  grad.addColorStop(1, 'rgba(124,92,252,0.04)');
+  ctx.beginPath();
+  points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.lineTo(points[points.length - 1].x, pad.top + cH);
+  ctx.lineTo(points[0].x, pad.top + cH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#fc5c7c';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Dots
+  points.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(252,92,124,0.6)';
+    ctx.fill();
+  });
+
+  // Last dot highlight
+  const last = points[points.length - 1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#fc5c7c';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  // Scroll to end (most recent) after drawing
+  requestAnimationFrame(() => {
+    if (wrapper) wrapper.scrollLeft = wrapper.scrollWidth;
+  });
+
+  if (timeLabelsEl) timeLabelsEl.innerHTML = '';
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+history.replaceState({ screen: 'start' }, '');
+
+// Kontrollera om användaren är admin (byt ut ID:t mot ditt eget Firebase UID)
+if (cu && cu.id === 'si0qVZ6vM1cZD9dSaoDl') {
+  document.getElementById('adminNotisPanel').style.display = 'block';
+}
+  
+// Vänta på att Firebase är redo innan vi fortsätter
+window.addEventListener('load', async function() {
+  try {
+    const savedUid = localStorage.getItem('svensexa_uid');
+    const savedTab = parseInt(localStorage.getItem('svensexa_tab') || '1', 10);
+    if (savedUid) {
+      try {
+        const doc = await db.collection('users').doc(savedUid).get();
+        if (doc.exists) {
+          document.getElementById('loadingScreen').style.display = 'none';
+          loginAs({ id: doc.id, ...doc.data() }, savedTab);
+          return;
+        }
+      } catch(e) { 
+        console.error('Kunde inte hämta användare:', e);
+      }
+      localStorage.removeItem('svensexa_uid');
+    }
+    renderStart();
+  } catch(e) {
+    console.error('Init-fel:', e);
+    document.getElementById('loadingScreen').innerHTML = '<div class="loading-logo">Fel</div><p style="color:var(--wrong);margin-top:10px;">Kunde inte ansluta till databasen</p>';
+  }
+});
+
+// ═══════════════════════════════════════════════
+// NOTIFICATION LISTENERS
+// ═══════════════════════════════════════════════
+let unsubNotifBets = null;
+let unsubNotifBingo = null;
+let unsubNotifQuestion = null;
+let fylleNotifTimeout = null;
+let lastSeenBets = new Set();
+let lastSeenBingos = new Set();
+let lastSeenQuestion = null;
+
+function startNotificationListeners() {
+  if (!cu) return;
+  
+  // 1. Nya bets
+  unsubNotifBets = db.collection('bets')
+    .where('status', '==', 'open')
+    .onSnapshot(snap => {
+      snap.docs.forEach(doc => {
+        const bet = { id: doc.id, ...doc.data() };
+        
+        // Kolla om jag kan delta
+        const targets = bet.targetUserIds || [];
+        const canParticipate = targets.length === 0 || 
+                               bet.createdById === cu.id || 
+                               targets.includes(cu.id);
+        
+        if (!canParticipate) return;
+        
+        // Nytt bet?
+        if (!lastSeenBets.has(bet.id) && bet.createdById !== cu.id) {
+          lastSeenBets.add(bet.id);
+          
+          // Visa notis efter kort delay (undvik spam vid första load)
+          if (lastSeenBets.size > 1) {
+            // Om betet är till specifika personer, skicka bara till dem
+            if (targets.length > 0) {
+              // Skicka till varje målperson individuellt
+              targets.forEach(targetUserId => {
+                sendNotificationToUser(targetUserId, '🎰 Nytt bet!', 
+                  `${bet.createdBy}: ${bet.question.substring(0, 60)}...`,
+                  { betId: bet.id });
+              });
+            } else {
+              // Betet är till alla, broadcast
+              sendNotificationToAll('🎰 Nytt bet!', 
+                `${bet.createdBy}: ${bet.question.substring(0, 60)}...`,
+                { betId: bet.id });
+            }
+          }
+        }
+      });
+    });
+  
+  // 2. Nya bingos
+  unsubNotifBingo = db.collection('bingo')
+    .where('hasBingo', '==', true)
+    .onSnapshot(snap => {
+      snap.docs.forEach(doc => {
+        const winner = doc.data();
+        
+        if (!lastSeenBingos.has(winner.userId) && winner.userId !== cu.id) {
+          lastSeenBingos.add(winner.userId);
+          
+          if (lastSeenBingos.size > 1) {
+            sendNotificationToAll('🎉 BINGO!', 
+              `${winner.userName} har bingo!`,
+              { bingoUserId: winner.userId });
+          }
+        }
+      });
+    });
+  
+  // 3. Fråga rättad
+  unsubNotifQuestion = db.collection('questions')
+    .where('active', '==', true)
+    .onSnapshot(snap => {
+      if (snap.empty) {
+        lastSeenQuestion = null;
+        return;
+      }
+      
+      const q = { id: snap.docs[0].id, ...snap.docs[0].data() };
+      const key = `${q.id}:${!!q.graded}`;
+      
+      // Fråga just rättad?
+      if (lastSeenQuestion && q.graded && 
+          lastSeenQuestion === `${q.id}:false`) {
+        
+        // Kolla om jag svarade
+        db.collection('answers').doc(`${q.id}_${cu.id}`).get().then(aDoc => {
+          if (aDoc.exists) {
+            const correct = aDoc.data().answerIndex === q.correctIndex;
+            // Skicka bara till mig själv
+            sendNotificationToUser(cu.id,
+              correct ? '🎉 Rätt svar!' : '😬 Frågan rättad',
+              correct ? `Du fick +${q.points || 1}p!` : 'Se ditt resultat',
+              { questionId: q.id, correct }
+            );
+          }
+        });
+      }
+      
+      lastSeenQuestion = key;
+    });
+  
+  // 4. Fylle-röst påminnelse (15 min kvar)
+  startFylleNotificationCheck();
+}
+
+function stopNotificationListeners() {
+  if (unsubNotifBets) { unsubNotifBets(); unsubNotifBets = null; }
+  if (unsubNotifBingo) { unsubNotifBingo(); unsubNotifBingo = null; }
+  if (unsubNotifQuestion) { unsubNotifQuestion(); unsubNotifQuestion = null; }
+  if (fylleNotifTimeout) { clearTimeout(fylleNotifTimeout); fylleNotifTimeout = null; }
+  
+  lastSeenBets = new Set();
+  lastSeenBingos = new Set();
+  lastSeenQuestion = null;
+}
+
+function startFylleNotificationCheck() {
+  if (fylleNotifTimeout) clearTimeout(fylleNotifTimeout);
+  
+  function checkFylleExpiry() {
+    if (!cu || fylleMyVote === null) {
+      fylleNotifTimeout = setTimeout(checkFylleExpiry, 60000); // Kolla igen om 1 min
+      return;
+    }
+    
+    const timeLeft = FYLLE_VOTE_EXPIRY_MS - (Date.now() - fylleLastVoteTime);
+    const fifteenMin = 15 * 60 * 1000;
+    
+    if (timeLeft > 0 && timeLeft <= fifteenMin && timeLeft > (fifteenMin - 60000)) {
+      // Mellan 14-15 min kvar, skicka påminnelse (bara till mig)
+      sendNotificationToUser(cu.id, '🍺 Fyllemätaren', 
+        'Din röst går ut om 15 minuter! Uppdatera bedömningen.',
+        { type: 'fylle-reminder' });
+    }
+    
+    // Schemalägg nästa check
+    const nextCheck = timeLeft > fifteenMin 
+      ? timeLeft - fifteenMin + 1000 
+      : 60000;
+    fylleNotifTimeout = setTimeout(checkFylleExpiry, nextCheck);
+  }
+  
+  checkFylleExpiry();
+}
+
+// Skicka notis till alla användare
+async function sendNotificationToAll(title, body, data = {}) {
+  try {
+    const response = await fetch('https://notiser.onrender.com/send-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        body,
+        data: {
+          ...data,
+          icon: 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davidlogga.png?alt=media',
+          badge: 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Dave1.png?alt=media'
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    // Visa lokal toast om appen är öppen
+    if (!document.hidden) {
+      showToast(`${title}: ${body}`);
+    }
+  } catch (error) {
+    console.error('Fel vid skickande av notis:', error);
+    // Visa åtminstone lokal toast vid fel
+    showToast(`${title}: ${body}`);
+  }
+}
+
+// Skicka notis till specifik användare
+async function sendNotificationToUser(userId, title, body, data = {}) {
+  try {
+    const response = await fetch('https://notiser.onrender.com/send-notification-to-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        title,
+        body,
+        data: {
+          ...data,
+          icon: 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Davidlogga.png?alt=media',
+          badge: 'https://firebasestorage.googleapis.com/v0/b/davids-svensexa.firebasestorage.app/o/Dave1.png?alt=media'
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    // Visa lokal toast om det gäller mig och appen är öppen
+    if (userId === cu.id && !document.hidden) {
+      showToast(`${title}: ${body}`);
+    }
+  } catch (error) {
+    console.error('Fel vid skickande av notis till användare:', error);
+    // Visa åtminstone lokal toast vid fel om det gäller mig
+    if (userId === cu.id) {
+      showToast(`${title}: ${body}`);
+    }
+  }
+}
+
+// Lyssna på inkommande FCM-notiser när appen är öppen
+if (messaging) {
+  messaging.onMessage((payload) => {
+    console.log('Mottagen FCM-notis:', payload);
+    
+    // Visa toast när appen är öppen
+    if (payload.notification) {
+      showToast(payload.notification.title + ': ' + payload.notification.body);
+    }
+  });
+}
+</script>
+</body>
+</html>
